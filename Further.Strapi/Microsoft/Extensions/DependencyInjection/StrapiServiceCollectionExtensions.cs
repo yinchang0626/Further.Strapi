@@ -1,3 +1,4 @@
+using Further.Strapi;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using System;
@@ -6,7 +7,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 
-namespace Further.Strapi;
+namespace Microsoft.Extensions.DependencyInjection;
 
 /// <summary>
 /// Strapi 服務配置擴展

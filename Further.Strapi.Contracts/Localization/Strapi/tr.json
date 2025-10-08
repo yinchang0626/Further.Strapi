@@ -1,0 +1,7 @@
+{
+  "culture": "tr",
+  "texts": {
+    "MyAccount":  "Hesabım",
+    "SamplePageMessage": "Strapi modulünden örnek bir sayfa"
+  }
+}

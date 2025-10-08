@@ -1,0 +1,13 @@
+﻿{
+  "packages": {
+    "Further.Strapi": {
+      "path": "Further.Strapi/Further.Strapi.abppkg"
+    },
+    "Further.Strapi.Tests": {
+      "path": "Further.Strapi.Tests/Further.Strapi.Tests.abppkg"
+    },
+    "Further.Strapi.Contracts": {
+      "path": "Further.Strapi.Contracts/Further.Strapi.Contracts.abppkg"
+    }
+  }
+}

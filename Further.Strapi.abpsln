@@ -1,0 +1,9 @@
+{
+  "id": "9474cbcf-a47e-4531-b4b7-8c91a6fd2301",
+  "template": "empty",
+  "modules": {
+    "Further.Strapi": {
+      "path": "Further.Strapi.abpmdl"
+    }
+  }
+}

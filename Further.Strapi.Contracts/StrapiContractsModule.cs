@@ -25,6 +25,9 @@ public class StrapiContractsModule : AbpModule
         // 註冊 Strapi 配置選項
         context.Services.Configure<StrapiOptions>(configuration.GetSection("Strapi"));
 
+        // 註冊 Strapi 服務 (不覆蓋 appsettings.json 設定)
+        context.Services.AddStrapi();
+
         Configure<AbpVirtualFileSystemOptions>(options =>
         {
             options.FileSets.AddEmbedded<StrapiContractsModule>("Further.Strapi");

@@ -44,13 +44,10 @@ public class StrapiModule : AbpModule
              * options.AddRepository<Question, EfCoreQuestionRepository>();
              */
         });
-
-        // 註冊 Strapi 服務 (不覆蓋 appsettings.json 設定)
-        context.Services.AddStrapi();
         
         // 註冊 Provider 服務
-        context.Services.AddScoped(typeof(ICollectionTypeProvider<>), typeof(CollectionTypeProvider<>));
-        context.Services.AddScoped(typeof(ISingleTypeProvider<>), typeof(SingleTypeProvider<>));
-        context.Services.AddScoped<IMediaLibraryProvider, MediaLibraryProvider>();
+        context.Services.AddTransient(typeof(ICollectionTypeProvider<>), typeof(CollectionTypeProvider<>));
+        context.Services.AddTransient(typeof(ISingleTypeProvider<>), typeof(SingleTypeProvider<>));
+        context.Services.AddTransient<IMediaLibraryProvider, MediaLibraryProvider>();
     }
 }

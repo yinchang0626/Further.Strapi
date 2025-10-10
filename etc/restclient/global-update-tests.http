@@ -1,0 +1,227 @@
+### Global Update 測試
+### 測試 Global Single Type 的更新操作
+### 找出哪個屬性造成 BadRequest 錯誤
+
+@baseUrl = http://localhost:1337
+@apiToken = bd8cdd66daecf5db8dbdfbeccbbf4e4adba0a38834f72a66700e31b1ad5864051a3ede3c0f028aae7621ef3077cc2226ed6e61e8c68c80f58d53d70d2ac64f8c401ca0c004378a8d62480ea78190eb9c505571c1b538f659a4a06e8c39e5a1c39ede18dfb600b11511b4f61c84b9fbe92e77a90340122a79e98d8ef9915fb5f1
+
+### 1. 先取得當前的 Global 資料
+GET {{baseUrl}}/api/global?populate[0]=favicon&populate[1]=defaultSeo&populate[2]=defaultSeo.shareImage
+Authorization: Bearer {{apiToken}}
+Accept: application/json
+
+### 2. 測試最簡單的更新 - 只更新 SiteName
+PUT {{baseUrl}}/api/global
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "siteName": "Test Site Name - 2025-01-09"
+  }
+}
+
+### 3. 測試包含 SiteDescription 的更新
+PUT {{baseUrl}}/api/global
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "siteName": "Test Site Name - 2025-01-09",
+    "siteDescription": "Test site description"
+  }
+}
+
+### 4. 測試包含 favicon 的更新 (使用 ID)
+PUT {{baseUrl}}/api/global
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "siteName": "Test Site Name - 2025-01-09",
+    "siteDescription": "Test site description",
+    "favicon": 1
+  }
+}
+
+### 5. 測試包含 defaultSeo component 的更新
+PUT {{baseUrl}}/api/global
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "siteName": "Test Site Name - 2025-01-09",
+    "siteDescription": "Test site description",
+    "defaultSeo": {
+      "metaTitle": "Test Meta Title",
+      "metaDescription": "Test meta description"
+    }
+  }
+}
+
+### 6. 測試包含 defaultSeo 和 shareImage 的更新 (使用 ID)
+PUT {{baseUrl}}/api/global
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "siteName": "Test Site Name - 2025-01-09",
+    "siteDescription": "Test site description",
+    "defaultSeo": {
+      "metaTitle": "Test Meta Title",
+      "metaDescription": "Test meta description",
+      "shareImage": 1
+    }
+  }
+}
+
+### 7. 測試錯誤：包含系統欄位 (應該會失敗)
+PUT {{baseUrl}}/api/global
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "id": 1,
+    "documentId": "abc123",
+    "siteName": "Test Site Name - 2025-01-09",
+    "siteDescription": "Test site description",
+    "createdAt": "2025-01-09T10:00:00.000Z",
+    "updatedAt": "2025-01-09T10:00:00.000Z"
+  }
+}
+
+### 8. 測試錯誤：包含完整的 favicon 物件 (應該會失敗)
+PUT {{baseUrl}}/api/global
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "siteName": "Test Site Name - 2025-01-09",
+    "favicon": {
+      "id": 1,
+      "documentId": "hh_JZFT0B6uYyFvwmIz5M",
+      "name": "favicon.ico",
+      "url": "/uploads/favicon_123456.ico",
+      "mime": "image/x-icon",
+      "size": 1024
+    }
+  }
+}
+
+### 9. 測試錯誤：包含完整的 defaultSeo component 物件 (應該會失敗)
+PUT {{baseUrl}}/api/global
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "siteName": "Test Site Name - 2025-01-09",
+    "defaultSeo": {
+      "id": 1,
+      "__component": "shared.seo",
+      "metaTitle": "Test Meta Title",
+      "metaDescription": "Test meta description",
+      "shareImage": {
+        "id": 1,
+        "documentId": "hh_JZFT0B6uYyFvwmIz5M",
+        "name": "share-image.jpg",
+        "url": "/uploads/share_image_123456.jpg"
+      }
+    }
+  }
+}
+
+### 10. 重現 C# 問題：包含所有系統欄位 (會失敗)
+### 這是 C# 序列化完整物件時產生的 JSON
+PUT {{baseUrl}}/api/global
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "siteName": "Test Site - 2025-10-09 14:42:12",
+    "siteDescription": "Test site description",
+    "favicon": 1,
+    "defaultSeo": {
+      "metaDescription": "123",
+      "metaTitle": "123",
+      "shareImage": 1
+    }
+  }
+}
+
+### 11. 修正版本：只包含業務欄位 (應該成功)
+### 移除所有系統欄位
+PUT {{baseUrl}}/api/global
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "siteName": "Test Site - 2025-10-09 14:42:12",
+    "siteDescription": "Test site description",
+    "favicon": 1,
+    "defaultSeo": {
+      "metaDescription": "123",
+      "metaTitle": "123",
+      "shareImage": 1
+    }
+  }
+}
+
+### 13. 驗證：defaultSeo 含有 __component 是否會失敗
+PUT {{baseUrl}}/api/global
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "siteName": "Test Site Name - 2025-01-09",
+    "defaultSeo": {
+      "__component": "shared.seo",
+      "metaTitle": "Test Meta Title",
+      "metaDescription": "Test meta description"
+    }
+  }
+}
+
+### 14. 恢復原始值的測試
+PUT {{baseUrl}}/api/global
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "siteName": "青島生態碳追蹤系統",
+    "siteDescription": "Qingdao Eco Carbon Tracking System - 一個專注於環境監測與碳足跡追蹤的創新平台"
+  }
+}
+
+### 測試說明:
+# 
+# 🎯 測試目標：
+# 找出哪些屬性會導致 BadRequest 錯誤
+# 
+# 🧪 測試策略：
+# 1. 從最簡單的更新開始 (只有 siteName)
+# 2. 逐步增加更多欄位
+# 3. 測試 media 關聯的正確格式
+# 4. 測試 component 的正確格式
+# 5. 確認哪些欄位是不應該包含的 (系統欄位、完整物件等)
+# 
+# ❌ 可能的錯誤原因：
+# 1. 包含了系統欄位 (id, documentId, createdAt, updatedAt)
+# 2. Media 關聯使用了完整物件而非 ID/documentId
+# 3. Component 包含了不該有的系統欄位 (id, __component)
+# 4. 欄位名稱錯誤 (camelCase vs snake_case)
+# 5. 資料類型錯誤
+# 
+# ✅ 預期結果：
+# 測試 2, 3, 4/5, 6, 7/8, 12 應該成功
+# 測試 9, 10, 11 應該失敗 (確認錯誤原因)

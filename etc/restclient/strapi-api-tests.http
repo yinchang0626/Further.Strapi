@@ -1,0 +1,89 @@
+### Strapi API 測試
+### 基礎配置
+@baseUrl = http://localhost:1337
+@apiToken = bd8cdd66daecf5db8dbdfbeccbbf4e4adba0a38834f72a66700e31b1ad5864051a3ede3c0f028aae7621ef3077cc2226ed6e61e8c68c80f58d53d70d2ac64f8c401ca0c004378a8d62480ea78190eb9c505571c1b538f659a4a06e8c39e5a1c39ede18dfb600b11511b4f61c84b9fbe92e77a90340122a79e98d8ef9915fb5f1
+
+### 1. 測試 Strapi 連線
+GET {{baseUrl}}/api
+Content-Type: application/json
+
+### 2. 測試 API Token 是否有效
+GET {{baseUrl}}/api/global
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+### 3. 測試 Global Single Type - 無 Token (檢查公開權限)
+GET {{baseUrl}}/api/global
+Content-Type: application/json
+
+### 4. 測試 About Single Type - 有 Token
+GET {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+### 5. 測試 About Single Type - 無 Token (檢查公開權限)
+GET {{baseUrl}}/api/about
+Content-Type: application/json
+
+### 6. 測試 Global Single Type 帶 populate 參數
+GET {{baseUrl}}/api/global?populate=*
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+### 7. 測試 About Single Type 帶 populate 參數
+GET {{baseUrl}}/api/about?populate=*
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+### 8. 更新 Global Single Type
+PUT {{baseUrl}}/api/global
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "siteName": "測試網站名稱 - {{$datetime iso8601}}",
+    "siteDescription": "這是測試更新的網站描述"
+  }
+}
+
+### 9. 更新 About Single Type
+PUT {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "title": "測試關於標題 - {{$datetime iso8601}}"
+  }
+}
+
+### 10. 測試 Collection Type - Articles (檢查是否有其他內容類型)
+GET {{baseUrl}}/api/articles
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+### 11. 測試 Collection Type - Categories
+GET {{baseUrl}}/api/categories
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+### 12. 測試 Collection Type - Authors
+GET {{baseUrl}}/api/authors
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+### 13. 測試上傳 API
+GET {{baseUrl}}/api/upload/files
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+### 14. 檢查 API Token 權限 - 嘗試存取管理端點
+GET {{baseUrl}}/admin/users/me
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+### 15. 測試錯誤端點 (應該返回 404)
+GET {{baseUrl}}/api/nonexistent
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json

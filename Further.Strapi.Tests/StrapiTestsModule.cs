@@ -15,21 +15,24 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage;
 using Volo.Abp.EntityFrameworkCore;
 using Volo.Abp.EntityFrameworkCore.Sqlite;
+using Volo.Abp.AutoMapper;
 
 namespace Further.Strapi.Tests;
 
 [DependsOn(
+    typeof(StrapiModule),
     typeof(AbpAspNetCoreTestBaseModule),
     typeof(AbpAspNetCoreMvcModule),
     typeof(AbpEntityFrameworkCoreSqliteModule),
     typeof(AbpEventBusModule),
     typeof(AbpCachingModule),
-    typeof(AbpDistributedLockingAbstractionsModule)
+    typeof(AbpDistributedLockingAbstractionsModule),
+    typeof(AbpAutoMapperModule)
 )]
 [AdditionalAssembly(typeof(StrapiModule))]
 public class StrapiTestsModule : AbpModule
 {
-    private SqliteConnection? _sqliteConnection;
+    private SqliteConnection _sqliteConnection;
     
     public override void ConfigureServices(ServiceConfigurationContext context)
     {
@@ -38,6 +41,7 @@ public class StrapiTestsModule : AbpModule
         ConfigureAuthorization(context);
         ConfigureDatabase(context);
         ConfigureDatabaseTransactions(context);
+        ConfigureStrapiForTesting(context);
     }
 
     public override void OnApplicationInitialization(ApplicationInitializationContext context)
@@ -106,5 +110,19 @@ public class StrapiTestsModule : AbpModule
         ).GetService<IRelationalDatabaseCreator>().CreateTables();
 
         return connection;
+    }
+    
+    private static void ConfigureStrapiForTesting(ServiceConfigurationContext context)
+    {
+        // 為整合測試配置 Strapi 服務
+        context.Services.AddStrapi(builder =>
+        {
+            builder.ConfigureOptions(options =>
+            {
+                options.StrapiUrl = "http://localhost:1337/";
+                options.StrapiToken = "bd8cdd66daecf5db8dbdfbeccbbf4e4adba0a38834f72a66700e31b1ad5864051a3ede3c0f028aae7621ef3077cc2226ed6e61e8c68c80f58d53d70d2ac64f8c401ca0c004378a8d62480ea78190eb9c505571c1b538f659a4a06e8c39e5a1c39ede18dfb600b11511b4f61c84b9fbe92e77a90340122a79e98d8ef9915fb5f1";
+            });
+
+        });
     }
 }

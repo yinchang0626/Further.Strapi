@@ -1,0 +1,172 @@
+### About Update 測試
+### 測試 About Single Type 的更新操作
+
+@baseUrl = http://localhost:1337
+@apiToken = bd8cdd66daecf5db8dbdfbeccbbf4e4adba0a38834f72a66700e31b1ad5864051a3ede3c0f028aae7621ef3077cc2226ed6e61e8c68c80f58d53d70d2ac64f8c401ca0c004378a8d62480ea78190eb9c505571c1b538f659a4a06e8c39e5a1c39ede18dfb600b11511b4f61c84b9fbe92e77a90340122a79e98d8ef9915fb5f1
+
+### 1. 先取得當前的 About 資料
+GET {{baseUrl}}/api/about?populate=*
+Authorization: Bearer {{apiToken}}
+Accept: application/json
+
+### 2. 測試最簡單的更新 - 只更新 Title
+PUT {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "title": "Test About Title - 2025-01-09"
+  }
+}
+
+### 3. 測試包含 blocks (Dynamic Zone) 的更新
+PUT {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "title": "Test About Title - 2025-01-09",
+    "blocks": [
+      {
+        "__component": "shared.rich-text",
+        "body": "This is a test rich text component."
+      }
+    ]
+  }
+}
+
+### 4. 測試包含多個 blocks 的更新
+PUT {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "title": "Test About Title - 2025-01-09",
+    "blocks": [
+      {
+        "__component": "shared.rich-text", 
+        "body": "This is a test rich text component."
+      },
+      {
+        "__component": "shared.quote",
+        "title": "Test Quote",
+        "body": "This is a test quote."
+      }
+    ]
+  }
+}
+
+### 5. 測試包含 media component 的更新
+PUT {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "title": "Test About Title - 2025-01-09",
+    "blocks": [
+      {
+        "__component": "shared.media",
+        "file": "hh_JZFT0B6uYyFvwmIz5M"
+      }
+    ]
+  }
+}
+
+### 6. 測試包含 SEO component 的更新
+PUT {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "title": "Test About Title - 2025-01-09",
+    "blocks": [
+      {
+        "__component": "shared.seo",
+        "metaTitle": "About Us - Test",
+        "metaDescription": "Test meta description for about page",
+        "shareImage": "hh_JZFT0B6uYyFvwmIz5M"
+      }
+    ]
+  }
+}
+
+### 7. 測試錯誤：包含系統欄位 (應該會失敗)
+PUT {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "id": 1,
+    "documentId": "abc123",
+    "title": "Test About Title - 2025-01-09",
+    "createdAt": "2025-01-09T10:00:00.000Z",
+    "updatedAt": "2025-01-09T10:00:00.000Z"
+  }
+}
+
+### 8. 測試錯誤：component 包含 id (應該會失敗)
+PUT {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "title": "Test About Title - 2025-01-09",
+    "blocks": [
+      {
+        "id": 1,
+        "__component": "shared.rich-text",
+        "body": "This should fail because it includes id."
+      }
+    ]
+  }
+}
+
+### 10. 驗證：blocks 沒有 __component 是否會失敗
+PUT {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "title": "Test About Title - 2025-01-09",
+    "blocks": [
+      {
+        "body": "This should fail because no __component."
+      }
+    ]
+  }
+}
+
+### 11. 恢復原始值的測試
+PUT {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "title": "關於我們"
+  }
+}
+
+### 測試說明:
+# 
+# 🎯 測試目標：
+# 找出 About Single Type 更新時的問題
+# 
+# 🧪 測試重點：
+# 1. 簡單的文字欄位更新
+# 2. Dynamic Zone (blocks) 的更新
+# 3. 不同類型的 components
+# 4. Media 關聯在 component 中的使用
+# 
+# ❌ 可能的錯誤：
+# 1. Dynamic Zone 語法錯誤
+# 2. Component 包含不該有的系統欄位
+# 3. Media 關聯格式錯誤

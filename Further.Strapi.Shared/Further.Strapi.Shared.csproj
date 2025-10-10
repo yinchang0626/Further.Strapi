@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  	<Import Project="..\common.props" />
+
+	<PropertyGroup>
+		<TargetFramework>net9.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<RootNamespace></RootNamespace>
+		<IsPackable>true</IsPackable>
+	</PropertyGroup>
+	
+	<ItemGroup>
+		<None Include="..\readme.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Volo.Abp.Core" Version="9.3.5" />
+		<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.5" />
+		<PackageReference Include="Volo.Abp.Json.SystemTextJson" Version="9.3.5" />
+	</ItemGroup>
+
+</Project>

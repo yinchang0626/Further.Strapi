@@ -1,0 +1,93 @@
+### Dynamic Zone 更新測試
+### 整體更新 About 的 Blocks Dynamic Zone
+
+@baseUrl = http://localhost:1337
+@apiToken = bd8cdd66daecf5db8dbdfbeccbbf4e4adba0a38834f72a66700e31b1ad5864051a3ede3c0f028aae7621ef3077cc2226ed6e61e8c68c80f58d53d70d2ac64f8c401ca0c004378a8d62480ea78190eb9c505571c1b538f659a4a06e8c39e5a1c39ede18dfb600b11511b4f61c84b9fbe92e77a90340122a79e98d8ef9915fb5f1
+
+### 1. 查看目前的 About Blocks
+GET {{baseUrl}}/api/about?populate=blocks
+Authorization: Bearer {{apiToken}}
+
+### 2. 更新整個 Dynamic Zone - 保留現有 Component 並新增
+PUT {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "title": "測試標題",
+    "blocks": [
+      {
+        "__component": "shared.quote",
+        "title": "更新的標題",
+        "body": "更新的內容"
+      },
+      {
+        "__component": "shared.rich-text",
+        "content": "這是新增的富文字內容"
+      }
+    ]
+  }
+}
+
+### 3. 更新 Dynamic Zone - 只保留一個 Component
+PUT {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "blocks": [
+      {
+        "__component": "shared.quote",
+        "title": "唯一的引言",
+        "body": "這裡只有一個引言組件"
+      }
+    ]
+  }
+}
+
+### 4. 清空 Dynamic Zone
+PUT {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "blocks": []
+  }
+}
+
+### 5. 新增多個不同類型的 Components
+PUT {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "title": "完整的關於頁面",
+    "blocks": [
+      {
+        "__component": "shared.quote",
+        "title": "引言標題",
+        "body": "這是一個引言組件"
+      },
+      {
+        "__component": "shared.rich-text",
+        "content": "這是富文字內容組件"
+      },
+      {
+        "__component": "shared.media",
+        "file": null
+      },
+      {
+        "__component": "shared.slider",
+        "files": []
+      }
+    ]
+  }
+}
+
+### 6. 驗證更新結果
+GET {{baseUrl}}/api/about?populate=blocks
+Authorization: Bearer {{apiToken}}

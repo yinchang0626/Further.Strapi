@@ -1,0 +1,104 @@
+name: Bug Report
+description: File a bug report to help us improve
+title: "[Bug]: "
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+
+  - type: input
+    id: contact
+    attributes:
+      label: Contact Details
+      description: How can we get in touch with you if we need more info?
+      placeholder: ex. email@example.com
+    validations:
+      required: false
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Also tell us, what did you expect to happen?
+      placeholder: Tell us what you see!
+      value: "A bug happened!"
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Steps to Reproduce
+      description: Please provide step-by-step instructions to reproduce the issue
+      placeholder: |
+        1. Go to '...'
+        2. Click on '....'
+        3. Scroll down to '....'
+        4. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: code-sample
+    attributes:
+      label: Code Sample
+      description: Please provide a minimal code sample that reproduces the issue
+      render: csharp
+      placeholder: |
+        // Your code here
+        var provider = serviceProvider.GetService<ICollectionTypeProvider<Article>>();
+        var result = await provider.GetListAsync();
+
+  - type: dropdown
+    id: version
+    attributes:
+      label: Version
+      description: What version of Further.Strapi are you running?
+      options:
+        - 1.0.0
+        - 1.0.0-preview
+        - main branch
+        - Other (please specify in additional context)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: dotnet-version
+    attributes:
+      label: .NET Version
+      description: What version of .NET are you using?
+      options:
+        - .NET 9.0
+        - .NET 8.0
+        - .NET 7.0
+        - Other (please specify in additional context)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: strapi-version
+    attributes:
+      label: Strapi Version
+      description: What version of Strapi are you using?
+      options:
+        - Strapi v5.x
+        - Strapi v4.x
+        - Other (please specify in additional context)
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Please copy and paste any relevant log output. This will be automatically formatted into code, so no need for backticks.
+      render: shell
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here
+      placeholder: Any additional information that might help us understand the issue better

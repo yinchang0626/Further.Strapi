@@ -1,0 +1,66 @@
+### Strapi 診斷測試
+### 快速檢查 Strapi 狀態和配置
+
+@baseUrl = http://localhost:1337
+@apiToken = bd8cdd66daecf5db8dbdfbeccbbf4e4adba0a38834f72a66700e31b1ad5864051a3ede3c0f028aae7621ef3077cc2226ed6e61e8c68c80f58d53d70d2ac64f8c401ca0c004378a8d62480ea78190eb9c505571c1b538f659a4a06e8c39e5a1c39ede18dfb600b11511b4f61c84b9fbe92e77a90340122a79e98d8ef9915fb5f1
+
+### 1. Strapi 健康檢查
+GET {{baseUrl}}/_health
+Accept: application/json
+
+### 2. Strapi 版本檢查
+GET {{baseUrl}}/admin/init
+Accept: application/json
+
+### 3. API 根路徑檢查
+GET {{baseUrl}}/api
+Accept: application/json
+
+### 4. 檢查 Admin API 狀態
+GET {{baseUrl}}/admin
+Accept: text/html
+
+### 5. 直接測試問題端點 - Global
+# 這是我們遇到 404 的端點
+GET {{baseUrl}}/api/global
+Authorization: Bearer {{apiToken}}
+Accept: application/json
+
+### 6. 直接測試問題端點 - About  
+# 這是我們遇到 404 的端點
+GET {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+Accept: application/json
+
+### 7. 測試其他可能的路徑格式
+GET {{baseUrl}}/api/globals
+Authorization: Bearer {{apiToken}}
+Accept: application/json
+
+### 8. 測試其他可能的路徑格式
+GET {{baseUrl}}/api/abouts
+Authorization: Bearer {{apiToken}}
+Accept: application/json
+
+### 9. 檢查所有端點
+GET {{baseUrl}}/api
+Accept: application/json
+
+### 10. 測試 Content Types 清單
+GET {{baseUrl}}/content-manager/content-types
+Authorization: Bearer {{apiToken}}
+Accept: application/json
+
+### 開發者工具
+
+### 11. 檢查 Console 錯誤 (會顯示詳細錯誤)
+GET {{baseUrl}}/api/global
+Authorization: Bearer {{apiToken}}
+Accept: application/json
+X-Debug: true
+
+### 12. 檢查 CORS 設定
+OPTIONS {{baseUrl}}/api/global
+Origin: http://localhost:3000
+Access-Control-Request-Method: GET
+Access-Control-Request-Headers: authorization,content-type

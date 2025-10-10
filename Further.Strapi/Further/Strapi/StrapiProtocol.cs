@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
+using Volo.Abp.Json;
 
 namespace Further.Strapi;
 
@@ -45,9 +46,18 @@ public static class StrapiProtocol
         /// </summary>
         public static string Media(string fileId = null)
         {
-            return fileId == null 
-                ? "api/upload" 
-                : $"api/upload/files/{fileId}";
+            if (string.IsNullOrWhiteSpace(fileId))
+            {
+                if (fileId == null)
+                {
+                    return "api/upload";
+                }
+                
+                // 空字串或純空白字元應該拋出異常
+                throw new ArgumentException("FileId cannot be empty or whitespace. Use null for upload endpoint.", nameof(fileId));
+            }
+            
+            return $"api/upload/files/{fileId}";
         }
 
         private static string GetCollectionName<T>()
@@ -92,7 +102,7 @@ public static class StrapiProtocol
         /// <summary>
         /// 自動產生 Populate 查詢 (根據型別屬性)
         /// </summary>
-        public static string Auto<T>(int maxDepth = 2)
+        public static string Auto<T>(int maxDepth = 5)
         {
             var builder = new PopulateBuilder();
             return builder.GenerateForType<T>(maxDepth);
@@ -124,44 +134,6 @@ public static class StrapiProtocol
     }
 
     /// <summary>
-    /// Filters 查詢建構器
-    /// </summary>
-    public static class Filters
-    {
-        public static FilterBuilder Create()
-        {
-            return new FilterBuilder();
-        }
-    }
-
-    /// <summary>
-    /// Sort 查詢建構器
-    /// </summary>
-    public static class Sort
-    {
-        public static SortBuilder Create()
-        {
-            return new SortBuilder();
-        }
-    }
-
-    /// <summary>
-    /// Pagination 查詢建構器
-    /// </summary>
-    public static class Pagination
-    {
-        public static string Create(int page = 1, int pageSize = 25)
-        {
-            return $"pagination[page]={page}&pagination[pageSize]={pageSize}";
-        }
-
-        public static string WithoutCount(int start = 0, int limit = 25)
-        {
-            return $"pagination[start]={start}&pagination[limit]={limit}&pagination[withCount]=false";
-        }
-    }
-
-    /// <summary>
     /// HTTP 回應處理工具
     /// </summary>
     public static class Response
@@ -169,7 +141,7 @@ public static class StrapiProtocol
         /// <summary>
         /// 將 HTTP 回應反序列化為指定類型
         /// </summary>
-        public static async Task<TResponse> DeserializeResponse<TResponse>(HttpResponseMessage response)
+        public static async Task<TResponse> DeserializeResponse<TResponse>(HttpResponseMessage response, IJsonSerializer jsonSerializer)
         {
             try
             {
@@ -177,14 +149,7 @@ public static class StrapiProtocol
 
                 if (response != null && response.IsSuccessStatusCode)
                 {
-                    var options = new JsonSerializerOptions
-                    {
-                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-                        PropertyNameCaseInsensitive = true
-                    };
-
-                    var content = JsonSerializer.Deserialize<TResponse>(jsonString, options);
-                    return content;
+                    return jsonSerializer.Deserialize<TResponse>(jsonString, camelCase: true);
                 }
 
                 throw new InvalidOperationException($"{jsonString}");
@@ -241,29 +206,6 @@ public static class StrapiProtocol
     }
 
     /// <summary>
-    /// 請求資料序列化工具
-    /// </summary>
-    public static class Request
-    {
-        /// <summary>
-        /// 序列化資料為 Strapi API 格式
-        /// </summary>
-        public static string SerializeData<TData>(TData data)
-        {
-            var options = new JsonSerializerOptions
-            {
-                Converters = { new JsonStringEnumConverter() },
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            };
-
-            return JsonSerializer.Serialize(new
-            {
-                Data = data
-            }, options);
-        }
-    }
-
-    /// <summary>
     /// Media Library 工具
     /// </summary>
     public static class MediaLibrary
@@ -280,16 +222,26 @@ public static class StrapiProtocol
             fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(fileUpload.ContentType);
             form.Add(fileContent, "files", fileUpload.FileName);
 
-            // 加入可選的 metadata
-            if (!string.IsNullOrEmpty(fileUpload.AlternativeText))
+            // 加入檔案 metadata 為 JSON 字符串 (單檔案上傳標準格式)
+            var fileInfo = new
             {
-                form.Add(new StringContent(fileUpload.AlternativeText, Encoding.UTF8), "fileInfo[0][alternativeText]");
-            }
+                name = fileUpload.FileName,
+                alternativeText = fileUpload.AlternativeText,
+                caption = fileUpload.Caption
+            };
 
-            if (!string.IsNullOrEmpty(fileUpload.Caption))
+            var fileInfoJson = JsonSerializer.Serialize(fileInfo, new JsonSerializerOptions
             {
-                form.Add(new StringContent(fileUpload.Caption, Encoding.UTF8), "fileInfo[0][caption]");
-            }
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            });
+
+            // 不要指定 Content-Type，讓它使用預設的 text/plain
+            // 避免使用 StringContent(string, Encoding) 因為它會自動設置 Content-Type
+            // 甚至 StringContent(string) 也會設置默認 Content-Type，需要手動清除
+            var stringContent = new StringContent(fileInfoJson);
+            stringContent.Headers.ContentType = null; // 清除 Content-Type
+            form.Add(stringContent, "fileInfo");
 
             // 加入可選的路徑 (僅在 AWS S3 等 provider 支援)
             if (!string.IsNullOrEmpty(fileUpload.Path))
@@ -333,7 +285,12 @@ public static class StrapiProtocol
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
             });
 
-            form.Add(new StringContent(fileInfoJson, Encoding.UTF8, "application/json"), "fileInfo");
+            // 不要指定 Content-Type，讓它使用預設的 text/plain
+            // 避免使用 StringContent(string, Encoding) 因為它會自動設置 Content-Type
+            // 甚至 StringContent(string) 也會設置默認 Content-Type，需要手動清除
+            var stringContent = new StringContent(fileInfoJson);
+            stringContent.Headers.ContentType = null; // 清除 Content-Type
+            form.Add(stringContent, "fileInfo");
 
             return form;
         }

@@ -3,6 +3,7 @@ using System;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using Volo.Abp.Json;
 
 namespace Further.Strapi;
 
@@ -14,10 +15,17 @@ namespace Further.Strapi;
 public class SingleTypeProvider<T> : ISingleTypeProvider<T> where T : class
 {
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IJsonSerializer _jsonSerializer;
+    private readonly StrapiWriteSerializer _strapiWriteSerializer;
 
-    public SingleTypeProvider(IHttpClientFactory httpClientFactory)
+    public SingleTypeProvider(
+        IHttpClientFactory httpClientFactory, 
+        IJsonSerializer jsonSerializer,
+        StrapiWriteSerializer strapiWriteSerializer)
     {
         _httpClientFactory = httpClientFactory;
+        _jsonSerializer = jsonSerializer;
+        _strapiWriteSerializer = strapiWriteSerializer;
     }
 
     private HttpClient CreateHttpClient()
@@ -49,7 +57,7 @@ public class SingleTypeProvider<T> : ISingleTypeProvider<T> where T : class
         }
 
         // 反序列化回應
-        var responseData = await StrapiProtocol.Response.DeserializeResponse<StrapiSingleResponse<T>>(response);
+        var responseData = await StrapiProtocol.Response.DeserializeResponse<StrapiSingleResponse<T>>(response, _jsonSerializer);
         
         if (responseData?.Data == null)
         {
@@ -69,11 +77,13 @@ public class SingleTypeProvider<T> : ISingleTypeProvider<T> where T : class
         // 建構 API 路徑
         var path = StrapiProtocol.Paths.SingleType<T>();
 
-        // 序列化請求資料
-        var jsonContent = StrapiProtocol.Request.SerializeData(updateValue);
+        // 使用清理器序列化並移除系統欄位
+        var jsonContent = _strapiWriteSerializer.SerializeForUpdate(updateValue);
+        var requestData = $"{{\"data\":{jsonContent}}}";
+        
         var request = new HttpRequestMessage(HttpMethod.Put, path)
         {
-            Content = new StringContent(jsonContent, Encoding.UTF8, "application/json")
+            Content = new StringContent(requestData, Encoding.UTF8, "application/json")
         };
 
         // 發送 PUT 請求

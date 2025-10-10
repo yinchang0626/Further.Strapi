@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
+using Volo.Abp.Json;
 
 namespace Further.Strapi;
 
@@ -9,13 +11,15 @@ namespace Further.Strapi;
 /// Strapi Media Library Provider 實現
 /// 用於處理 Strapi 的媒體庫操作（檔案上傳、取得、刪除）
 /// </summary>
-public class MediaLibraryProvider : IMediaLibraryProvider
+public class MediaLibraryProvider : IMediaLibraryProvider,Volo.Abp.DependencyInjection.ITransientDependency
 {
     private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IJsonSerializer _jsonSerializer;
 
-    public MediaLibraryProvider(IHttpClientFactory httpClientFactory)
+    public MediaLibraryProvider(IHttpClientFactory httpClientFactory, IJsonSerializer jsonSerializer)
     {
         _httpClientFactory = httpClientFactory;
+        _jsonSerializer = jsonSerializer;
     }
 
     private HttpClient CreateHttpClient()
@@ -26,7 +30,7 @@ public class MediaLibraryProvider : IMediaLibraryProvider
     /// <summary>
     /// 上傳檔案到 Strapi Media Library
     /// </summary>
-    public async Task<StrapiMediaFile> UploadAsync(FileUploadRequest fileUpload)
+    public async Task<StrapiMediaField> UploadAsync(FileUploadRequest fileUpload)
     {
         var client = CreateHttpClient();
         
@@ -51,7 +55,7 @@ public class MediaLibraryProvider : IMediaLibraryProvider
         }
 
         // 反序列化回應 (Strapi Media Library 回傳的是陣列)
-        var uploadedFiles = await StrapiProtocol.Response.DeserializeResponse<List<StrapiMediaFile>>(response);
+        var uploadedFiles = await StrapiProtocol.Response.DeserializeResponse<List<StrapiMediaField>>(response, _jsonSerializer);
         
         if (uploadedFiles == null || uploadedFiles.Count == 0)
         {
@@ -64,7 +68,7 @@ public class MediaLibraryProvider : IMediaLibraryProvider
     /// <summary>
     /// 上傳檔案並關聯到特定的內容項目
     /// </summary>
-    public async Task<StrapiMediaFile> UploadEntryFileAsync(EntryFileUploadRequest entryFileUpload)
+    public async Task<StrapiMediaField> UploadEntryFileAsync(EntryFileUploadRequest entryFileUpload)
     {
         var client = CreateHttpClient();
         
@@ -89,7 +93,7 @@ public class MediaLibraryProvider : IMediaLibraryProvider
         }
 
         // 反序列化回應 (Strapi Media Library 回傳的是陣列)
-        var uploadedFiles = await StrapiProtocol.Response.DeserializeResponse<List<StrapiMediaFile>>(response);
+        var uploadedFiles = await StrapiProtocol.Response.DeserializeResponse<List<StrapiMediaField>>(response, _jsonSerializer);
         
         if (uploadedFiles == null || uploadedFiles.Count == 0)
         {
@@ -98,7 +102,7 @@ public class MediaLibraryProvider : IMediaLibraryProvider
 
         return uploadedFiles[0];
     }
-    public async Task<StrapiMediaFile> GetAsync(int fileId)
+    public async Task<StrapiMediaField> GetAsync(int fileId)
     {
         var client = CreateHttpClient();
         
@@ -115,13 +119,13 @@ public class MediaLibraryProvider : IMediaLibraryProvider
         }
 
         // 反序列化回應
-        return await StrapiProtocol.Response.DeserializeResponse<StrapiMediaFile>(response);
+        return await StrapiProtocol.Response.DeserializeResponse<StrapiMediaField>(response, _jsonSerializer);
     }
 
     /// <summary>
     /// 取得檔案列表
     /// </summary>
-    public async Task<List<StrapiMediaFile>> GetListAsync()
+    public async Task<List<StrapiMediaField>> GetListAsync()
     {
         var client = CreateHttpClient();
         
@@ -138,17 +142,17 @@ public class MediaLibraryProvider : IMediaLibraryProvider
         }
 
         // 反序列化回應
-        return await StrapiProtocol.Response.DeserializeResponse<List<StrapiMediaFile>>(response);
+        return await StrapiProtocol.Response.DeserializeResponse<List<StrapiMediaField>>(response, _jsonSerializer);
     }
 
     /// <summary>
     /// 更新檔案資訊 (metadata)
     /// </summary>
-    public async Task<StrapiMediaFile> UpdateFileInfoAsync(int fileId, FileInfoUpdateRequest updateRequest)
+    public async Task<StrapiMediaField> UpdateFileInfoAsync(int fileId, FileInfoUpdateRequest updateRequest)
     {
         var client = CreateHttpClient();
         
-        // 建構 API 路徑 (根據官方文檔：POST /api/upload?id=x)
+        // 建構 API 路徑 (使用 POST /api/upload?id=:id 來更新檔案資訊)
         var path = $"{StrapiProtocol.Paths.Media()}?id={fileId}";
 
         // 使用協定工具建立 form data
@@ -165,11 +169,12 @@ public class MediaLibraryProvider : IMediaLibraryProvider
 
         if (!response.IsSuccessStatusCode)
         {
-            throw new InvalidOperationException($"無法更新檔案資訊。狀態碼: {response.StatusCode}");
+            var errorContent = await response.Content.ReadAsStringAsync();
+            throw new InvalidOperationException($"無法更新檔案資訊。狀態碼: {response.StatusCode}，內容: {errorContent}");
         }
 
         // 反序列化回應
-        return await StrapiProtocol.Response.DeserializeResponse<StrapiMediaFile>(response);
+        return await StrapiProtocol.Response.DeserializeResponse<StrapiMediaField>(response, _jsonSerializer);
     }
 
     /// <summary>

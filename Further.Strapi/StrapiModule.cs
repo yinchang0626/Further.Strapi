@@ -48,6 +48,5 @@ public class StrapiModule : AbpModule
         // 註冊 Provider 服務
         context.Services.AddTransient(typeof(ICollectionTypeProvider<>), typeof(CollectionTypeProvider<>));
         context.Services.AddTransient(typeof(ISingleTypeProvider<>), typeof(SingleTypeProvider<>));
-        context.Services.AddTransient<IMediaLibraryProvider, MediaLibraryProvider>();
     }
 }

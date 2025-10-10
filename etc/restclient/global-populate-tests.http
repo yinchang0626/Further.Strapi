@@ -1,0 +1,17 @@
+### Global Populate 測試
+### 測試 Global Single Type 的詳細 populate 查詢
+
+@baseUrl = http://localhost:1337
+@apiToken = bd8cdd66daecf5db8dbdfbeccbbf4e4adba0a38834f72a66700e31b1ad5864051a3ede3c0f028aae7621ef3077cc2226ed6e61e8c68c80f58d53d70d2ac64f8c401ca0c004378a8d62480ea78190eb9c505571c1b538f659a4a06e8c39e5a1c39ede18dfb600b11511b4f61c84b9fbe92e77a90340122a79e98d8ef9915fb5f1
+
+### 16. 比較測試 - 修正後的語法 (移除內建屬性)
+### 測試移除所有內建屬性後是否正常
+GET {{baseUrl}}/api/global?populate[0]=favicon&populate[1]=defaultSeo&populate[2]=defaultSeo.shareImage
+Authorization: Bearer {{apiToken}}
+Accept: application/json
+
+### 16.1. 比較測試 - 修正後的語法 (移除內建屬性)
+### 測試移除所有內建屬性後是否正常
+GET {{baseUrl}}/api/global?populate[0]=favicon&populate[1]=defaultSeo&populate[2]=defaultSeo.shareImage
+Authorization: Bearer {{apiToken}}
+Accept: application/json

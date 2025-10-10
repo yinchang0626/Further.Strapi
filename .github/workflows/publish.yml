@@ -1,0 +1,151 @@
+name: Publish to NuGet
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'common.props'  # 只有當版本變更時才觸發發布
+  workflow_dispatch:     # 允許手動觸發
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: Read common.props
+      id: commonProps
+      uses: juliangruber/read-file-action@v1
+      with:
+        path: ./common.props
+
+    - name: Extract version
+      id: getVersion
+      uses: AsasInnab/regex-action@v1
+      with:
+        regex_pattern: '(?<=<Version>)[^<>]+(?=</Version>)'
+        regex_flags: 'gim'
+        search_string: '${{ steps.commonProps.outputs.content }}'
+
+    - name: Check if version tag exists
+      uses: mukunku/tag-exists-action@v1.2.0
+      id: checkTag
+      with:
+        tag: v${{ steps.getVersion.outputs.first_match }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Skip if version already published
+      if: ${{ steps.checkTag.outputs.exists == 'true' }}
+      run: |
+        echo "Version v${{ steps.getVersion.outputs.first_match }} already exists. Skipping publish."
+        exit 0
+
+    - name: Restore dependencies
+      if: ${{ steps.checkTag.outputs.exists == 'false' }}
+      run: dotnet restore
+
+    - name: Build
+      if: ${{ steps.checkTag.outputs.exists == 'false' }}
+      run: dotnet build --no-restore --configuration Release
+
+    - name: Test
+      if: ${{ steps.checkTag.outputs.exists == 'false' }}
+      run: dotnet test --no-build --configuration Release --verbosity normal
+
+    - name: Pack
+      if: ${{ steps.checkTag.outputs.exists == 'false' }}
+      run: dotnet pack --no-build --configuration Release --output ./nugetPackages/
+
+    - name: Clean packages
+      if: ${{ steps.checkTag.outputs.exists == 'false' }}
+      run: |
+        cd ./nugetPackages
+        # 只保留 Further.Strapi 相關的包，移除測試和主機包
+        shopt -s extglob
+        rm -f !(Further.Strapi*)
+        rm -f !(*.${{ steps.getVersion.outputs.first_match }}.nupkg)
+        rm -f *.Tests.*
+        rm -f *.TestBase.*
+        rm -f *.Host.*
+        rm -f *.HttpApi.Host.*
+        rm -f *.Web.*
+        rm -f *.Blazor.*
+        rm -f *.ConsoleTestApp.*
+        echo "Remaining packages:"
+        ls -la
+
+    - name: Push to GitHub Packages
+      if: ${{ steps.checkTag.outputs.exists == 'false' }}
+      run: |
+        for package in ./nugetPackages/*.nupkg; do
+          echo "Pushing $package to GitHub Packages..."
+          dotnet nuget push "$package" \
+            --source "https://nuget.pkg.github.com/yinchang0626/index.json" \
+            --api-key ${{ secrets.GITHUB_TOKEN }} \
+            --skip-duplicate
+        done
+
+    - name: Push to NuGet.org
+      if: ${{ steps.checkTag.outputs.exists == 'false' }}
+      run: |
+        for package in ./nugetPackages/*.nupkg; do
+          echo "Pushing $package to NuGet.org..."
+          dotnet nuget push "$package" \
+            --source "https://api.nuget.org/v3/index.json" \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --skip-duplicate
+        done
+
+    - name: Create Git tag
+      if: ${{ steps.checkTag.outputs.exists == 'false' }}
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.git.createRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: 'refs/tags/v${{ steps.getVersion.outputs.first_match }}',
+            sha: context.sha
+          })
+
+    - name: Create GitHub Release
+      if: ${{ steps.checkTag.outputs.exists == 'false' }}
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.getVersion.outputs.first_match }}
+        name: Further.Strapi v${{ steps.getVersion.outputs.first_match }}
+        body: |
+          ## Further.Strapi v${{ steps.getVersion.outputs.first_match }}
+          
+          ### 📦 NuGet Packages
+          - [Further.Strapi](https://www.nuget.org/packages/Further.Strapi/)
+          - [Further.Strapi.Contracts](https://www.nuget.org/packages/Further.Strapi.Contracts/)
+          - [Further.Strapi.Shared](https://www.nuget.org/packages/Further.Strapi.Shared/)
+          
+          ### 🚀 Installation
+          ```bash
+          dotnet add package Further.Strapi
+          ```
+          
+          ### 📝 Changes
+          Please see [CHANGELOG.md](https://github.com/yinchang0626/Further.Strapi/blob/main/CHANGELOG.md) for details.
+        files: ./nugetPackages/*.nupkg
+        draft: false
+        prerelease: false
+
+    - name: Upload build artifacts
+      if: ${{ steps.checkTag.outputs.exists == 'false' }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: nuget-packages-v${{ steps.getVersion.outputs.first_match }}
+        path: ./nugetPackages/*.nupkg
+        retention-days: 30

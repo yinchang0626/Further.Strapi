@@ -16,6 +16,7 @@ namespace Further.Strapi;
     typeof(AbpValidationModule),
     typeof(AbpAuthorizationModule)
 )]
+[DependsOn(typeof(Further.Strapi.StrapiSharedModule))]
 public class StrapiContractsModule : AbpModule
 {
     public override void ConfigureServices(ServiceConfigurationContext context)

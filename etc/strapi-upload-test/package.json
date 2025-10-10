@@ -1,0 +1,13 @@
+{
+  "name": "strapi-upload-test",
+  "version": "1.0.0",
+  "description": "Test Strapi upload API",
+  "main": "test-upload.js",
+  "scripts": {
+    "test": "node test-upload.js"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.7",
+    "form-data": "^4.0.0"
+  }
+}

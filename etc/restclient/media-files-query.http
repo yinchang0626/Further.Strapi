@@ -1,0 +1,49 @@
+### Media Files ID 查詢
+### 查詢現有的媒體檔案 ID，用於更新測試
+
+@baseUrl = http://localhost:1337
+@apiToken = bd8cdd66daecf5db8dbdfbeccbbf4e4adba0a38834f72a66700e31b1ad5864051a3ede3c0f028aae7621ef3077cc2226ed6e61e8c68c80f58d53d70d2ac64f8c401ca0c004378a8d62480ea78190eb9c505571c1b538f659a4a06e8c39e5a1c39ede18dfb600b11511b4f61c84b9fbe92e77a90340122a79e98d8ef9915fb5f1
+
+### 1. 查詢所有媒體檔案
+GET {{baseUrl}}/api/upload/files
+Authorization: Bearer {{apiToken}}
+Accept: application/json
+
+### 2. 查詢媒體檔案 (分頁)
+GET {{baseUrl}}/api/upload/files?pagination[page]=1&pagination[pageSize]=10
+Authorization: Bearer {{apiToken}}
+Accept: application/json
+
+### 3. 查詢特定檔案類型 (圖片)
+GET {{baseUrl}}/api/upload/files?filters[mime][$startsWith]=image
+Authorization: Bearer {{apiToken}}
+Accept: application/json
+
+### 4. 查詢特定檔案名稱
+GET {{baseUrl}}/api/upload/files?filters[name][$contains]=favicon
+Authorization: Bearer {{apiToken}}
+Accept: application/json
+
+### 5. 查詢特定檔案 (使用 ID)
+GET {{baseUrl}}/api/upload/files/1
+Authorization: Bearer {{apiToken}}
+Accept: application/json
+
+### 6. 查詢特定檔案 (使用 documentId)
+GET {{baseUrl}}/api/upload/files/nt13fzlqatcr5rew37iisc1r
+Authorization: Bearer {{apiToken}}
+Accept: application/json
+
+### 測試說明:
+# 
+# 🎯 目標：
+# 找出正確的媒體檔案 ID 和 documentId
+# 
+# 📋 需要的資訊：
+# 1. favicon 的 ID 和 documentId
+# 2. shareImage 的 ID 和 documentId
+# 3. 其他可用的媒體檔案
+# 
+# 💡 使用方式：
+# 從測試結果中複製正確的 ID 和 documentId
+# 更新到 global-update-tests.http 中

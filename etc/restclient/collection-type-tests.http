@@ -1,0 +1,388 @@
+### Collection Type CRUD 測試
+### 測試 Article 的 Dynamic Zone 組件和關聯關係
+
+@baseUrl = http://localhost:1337
+@apiToken = bd8cdd66daecf5db8dbdfbeccbbf4e4adba0a38834f72a66700e31b1ad5864051a3ede3c0f028aae7621ef3077cc2226ed6e61e8c68c80f58d53d70d2ac64f8c401ca0c004378a8d62480ea78190eb9c505571c1b538f659a4a06e8c39e5a1c39ede18dfb600b11511b4f61c84b9fbe92e77a90340122a79e98d8ef9915fb5f1
+# 從步驟1取得的 Article Document ID
+@articleDocumentId = huhx424nhbm7vohwzcm4jn83
+
+# 從步驟6取得的 Author Document ID
+@authorDocumentId = uevo4x997i3y1anuvogqmii1
+
+# 從步驟7取得的 Category Document ID  
+@categoryDocumentId = tlsl7ccgkwmm4hgifn3qd9vp
+
+# 從步驟8取得的完整 Article Document ID
+@completeArticleDocumentId = PUT_COMPLETE_ARTICLE_DOCUMENT_ID_HERE
+
+### 1. 測試創建 Article 包含 Dynamic Zone 組件
+POST {{baseUrl}}/api/articles
+Content-Type: application/json
+Authorization: Bearer {{apiToken}}
+
+{
+  "data": {
+    "title": "測試文章包含動態區塊",
+    "description": "這個測試文章包含多種動態區塊組件",
+    "slug": "test-article-with-blocks-2",
+    "blocks": [
+      {
+        "__component": "shared.rich-text",
+        "body": "這是一段豐富的文本內容，支援 **粗體** 和 *斜體* 等格式。"
+      },
+      {
+        "__component": "shared.quote",
+        "title": "重要引言",
+        "body": "這是文章中的一個重要引言，用來強調關鍵觀點。"
+      },
+      {
+        "__component": "shared.media",
+        "file": {
+          "id": 1
+        }
+      }
+    ]
+  }
+}
+
+### 2. 測試讀取創建的 Article（包含 populate blocks 中的檔案）
+GET {{baseUrl}}/api/articles/{{articleDocumentId}}?populate[0]=blocks&populate[1]=blocks.file&populate[2]=blocks.files&populate[3]=author&populate[4]=category&populate[5]=cover
+
+### 3. 測試更新 Article 的 Dynamic Zone（只保留必要欄位）
+PUT {{baseUrl}}/api/articles/{{articleDocumentId}}
+Content-Type: application/json
+Authorization: Bearer {{apiToken}}
+
+{
+  "data": {
+    "title": "更新後的文章標題",
+    "description": "更新後的描述",
+    "blocks": [
+      {
+        "__component": "shared.rich-text",
+        "body": "更新後的豐富文本內容。"
+      },
+      {
+        "__component": "shared.quote",
+        "title": "新的引言標題",
+        "body": "這是更新後的引言內容。"
+      },
+      {
+        "__component": "shared.slider",
+        "files": [
+          {
+            "id": 1
+          },
+          {
+            "id": 2
+          }
+        ]
+      }
+    ]
+  }
+}
+
+### 4. 測試 Article 與 Author/Category 的關聯創建 (字串格式)
+POST {{baseUrl}}/api/articles
+Content-Type: application/json
+Authorization: Bearer {{apiToken}}
+
+{
+  "data": {
+    "title": "測試關聯文章",
+    "description": "這個文章測試與 Author 和 Category 的關聯",
+    "slug": "test-article-with-relations-3",
+    "author": "{{authorDocumentId}}",
+    "category": "{{categoryDocumentId}}",
+    "blocks": [
+      {
+        "__component": "shared.rich-text",
+        "body": "這是有關聯的文章內容。"
+      }
+    ]
+  }
+}
+
+### 4.1 測試 Article 與 Author/Category 的關聯創建 (陣列格式)
+POST {{baseUrl}}/api/articles
+Content-Type: application/json
+Authorization: Bearer {{apiToken}}
+
+{
+  "data": {
+    "title": "測試關聯文章 - 陣列格式",
+    "description": "這個文章測試與 Author 和 Category 的關聯 (使用陣列格式)",
+    "slug": "test-article-with-relations-array-format",
+    "author": ["{{authorDocumentId}}"],
+    "category": ["{{categoryDocumentId}}"],
+    "blocks": [
+      {
+        "__component": "shared.rich-text",
+        "body": "這是有關聯的文章內容（陣列格式）。"
+      }
+    ]
+  }
+}
+
+### 5. 測試更新 Article 關聯（斷開舊關聯，建立新關聯）
+PUT {{baseUrl}}/api/articles/{{articleDocumentId}}
+Content-Type: application/json
+Authorization: Bearer {{apiToken}}
+
+{
+  "data": {
+    "title": "更新關聯後的文章",
+    "author": {
+      "disconnect": ["{{authorDocumentId}}"],
+      "connect": ["{{authorDocumentId}}"]
+    },
+    "category": {
+      "connect": ["{{categoryDocumentId}}"]
+    }
+  }
+}
+
+### 6. 測試創建 Author
+POST {{baseUrl}}/api/authors
+Content-Type: application/json
+Authorization: Bearer {{apiToken}}
+
+{
+  "data": {
+    "name": "測試作者",
+    "email": "test@example.com",
+    "avatar": {
+      "id": 1
+    }
+  }
+}
+
+### 6.1 測試創建 Author 同時指定多個文章 (陣列格式)
+POST {{baseUrl}}/api/authors
+Content-Type: application/json
+Authorization: Bearer {{apiToken}}
+
+{
+  "data": {
+    "name": "作者包含多篇文章",
+    "email": "author-with-articles@example.com",
+    "articles": ["inn5n05hhb62oaveixi7ik0l", "huhx424nhbm7vohwzcm4jn83"]
+  }
+}
+
+### 6.2 測試更新 Author 指定多個文章
+PUT {{baseUrl}}/api/authors/{{authorDocumentId}}
+Content-Type: application/json
+Authorization: Bearer {{apiToken}}
+
+{
+  "data": {
+    "name": "更新作者的文章關聯",
+    "articles": ["{{articleDocumentId}}", "huhx424nhbm7vohwzcm4jn83"]
+  }
+}
+
+### 7. 測試創建 Category
+POST {{baseUrl}}/api/categories
+Content-Type: application/json
+Authorization: Bearer {{apiToken}}
+
+{
+  "data": {
+    "name": "測試分類",
+    "description": "這是一個測試分類",
+    "slug": "test-category"
+  }
+}
+
+### 7.1 測試創建 Category 同時指定多個文章 (陣列格式)
+POST {{baseUrl}}/api/categories
+Content-Type: application/json
+Authorization: Bearer {{apiToken}}
+
+{
+  "data": {
+    "name": "分類包含多篇文章",
+    "description": "這個分類同時關聯多篇文章",
+    "slug": "category-with-multiple-articles",
+    "articles": ["{{articleDocumentId}}", "huhx424nhbm7vohwzcm4jn83"]
+  }
+}
+
+### 7.2 測試更新 Category 指定多個文章
+PUT {{baseUrl}}/api/categories/{{categoryDocumentId}}
+Content-Type: application/json
+Authorization: Bearer {{apiToken}}
+
+{
+  "data": {
+    "name": "更新分類的文章關聯",
+    "articles": ["{{articleDocumentId}}", "huhx424nhbm7vohwzcm4jn83"]
+  }
+}
+
+### 8. 測試複雜的 Article 創建（包含所有關聯和組件）
+POST {{baseUrl}}/api/articles
+Content-Type: application/json
+Authorization: Bearer {{apiToken}}
+
+{
+  "data": {
+    "title": "完整測試文章",
+    "description": "包含所有關聯和組件的完整測試",
+    "slug": "complete-test-article",
+    "cover": {
+      "id": 1
+    },
+    "author": {
+      "connect": ["{{authorDocumentId}}"]
+    },
+    "category": {
+      "connect": ["{{categoryDocumentId}}"]
+    },
+    "blocks": [
+      {
+        "__component": "shared.rich-text",
+        "body": "這是文章的主要內容，使用豐富文本格式。"
+      },
+      {
+        "__component": "shared.media",
+        "file": {
+          "id": 1
+        }
+      },
+      {
+        "__component": "shared.quote",
+        "title": "專家觀點",
+        "body": "這是來自專家的重要觀點和見解。"
+      },
+      {
+        "__component": "shared.slider",
+        "files": [
+          {
+            "id": 1
+          },
+          {
+            "id": 2
+          }
+        ]
+      }
+    ]
+  }
+}
+
+### 9. 測試讀取完整 Article（深度 populate）
+GET {{baseUrl}}/api/articles/{{articleDocumentId}}?populate[0]=blocks&populate[1]=blocks.file&populate[2]=blocks.files&populate[3]=author&populate[4]=category&populate[5]=cover
+
+### 10. 測試刪除 Article
+DELETE {{baseUrl}}/api/articles/{{completeArticleDocumentId}}
+Authorization: Bearer {{apiToken}}
+
+### 驗證問題的測試案例
+
+### 測試清理器產生的 JSON（來自 C# 清理器的輸出）
+POST {{baseUrl}}/api/articles
+Content-Type: application/json
+Authorization: Bearer {{apiToken}}
+
+{
+  "data": {
+    "title": "測試文章包含複雜組件",
+    "description": "這個文章包含多種組件和媒體檔案",
+    "slug": "test-complex-article-from-cleaner-1",
+    "cover": 1,
+    "blocks": [
+      {
+        "__component": "shared.rich-text",
+        "body": "這是豐富文本內容"
+      },
+      {
+        "__component": "shared.media",
+        "file": 2
+      },
+      {
+        "__component": "shared.slider",
+        "files": [1, 2]
+      }
+    ]
+  }
+}
+
+### 測試 1: 系統欄位是否會被自動清理
+POST {{baseUrl}}/api/articles
+Content-Type: application/json
+Authorization: Bearer {{apiToken}}
+
+{
+  "data": {
+    "title": "測試系統欄位清理",
+    "description": "這個測試包含不應該被發送的系統欄位",
+    "slug": "test-system-fields",
+    "id": 999,
+    "documentId": "fake-doc-id",
+    "createdAt": "2023-01-01T00:00:00.000Z",
+    "updatedAt": "2023-01-01T00:00:00.000Z",
+    "publishedAt": "2023-01-01T00:00:00.000Z",
+    "blocks": [
+      {
+        "__component": "shared.rich-text",
+        "id": 888,
+        "body": "測試組件中的系統欄位是否被清理"
+      }
+    ]
+  }
+}
+
+### 測試 2: Media File 是否只保留 ID
+POST {{baseUrl}}/api/articles
+Content-Type: application/json
+Authorization: Bearer {{apiToken}}
+
+{
+  "data": {
+    "title": "測試媒體檔案序列化",
+    "description": "測試媒體檔案是否只發送 ID",
+    "slug": "test-media-serialization",
+    "cover": {
+      "id": 1,
+      "documentId": "should-be-removed",
+      "name": "should-be-removed.jpg",
+      "url": "should-be-removed",
+      "createdAt": "should-be-removed",
+      "updatedAt": "should-be-removed"
+    },
+    "blocks": [
+      {
+        "__component": "shared.media",
+        "file": {
+          "id": 2,
+          "documentId": "should-be-removed-too",
+          "name": "should-be-removed-too.jpg",
+          "url": "should-be-removed-too"
+        }
+      }
+    ]
+  }
+}
+
+### 測試 3: 關聯關係的處理
+POST {{baseUrl}}/api/articles
+Content-Type: application/json
+Authorization: Bearer {{apiToken}}
+
+{
+  "data": {
+    "title": "測試關聯關係處理",
+    "description": "測試關聯關係是否正確處理",
+    "slug": "test-relations",
+    "author": {
+      "id": 1,
+      "documentId": "should-be-converted-to-connect",
+      "name": "should-be-removed",
+      "email": "should-be-removed"
+    },
+    "category": {
+      "connect": ["{{categoryDocumentId}}"]
+    }
+  }
+}

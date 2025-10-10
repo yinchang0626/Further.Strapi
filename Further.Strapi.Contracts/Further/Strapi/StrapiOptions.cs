@@ -8,7 +8,7 @@ namespace Further.Strapi;
 
 public class StrapiOptions
 {
-    public static readonly string HttpClientName = "StrapiApi";
+    public static readonly string HttpClientName = "StrapiClient";
     public string StrapiUrl { get; set; } = null!;
 
     public string StrapiToken { get; set; } = null!;

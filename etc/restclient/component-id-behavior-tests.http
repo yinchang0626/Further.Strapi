@@ -1,0 +1,94 @@
+### Dynamic Zone ID 行為測試
+
+@baseUrl = http://localhost:1337
+@apiToken = bd8cdd66daecf5db8dbdfbeccbbf4e4adba0a38834f72a66700e31b1ad5864051a3ede3c0f028aae7621ef3077cc2226ed6e61e8c68c80f58d53d70d2ac64f8c401ca0c004378a8d62480ea78190eb9c505571c1b538f659a4a06e8c39e5a1c39ede18dfb600b11511b4f61c84b9fbe92e77a90340122a79e98d8ef9915fb5f1
+
+### 1. 查看目前的 About Blocks (記錄 Component IDs)
+GET {{baseUrl}}/api/about?populate=blocks
+Authorization: Bearer {{apiToken}}
+
+### 2. 測試：保留 ID 的更新 (推薦做法)
+# 保留現有 Component 的 id，只修改內容
+PUT {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "blocks": [
+      {
+        "__component": "shared.quote",
+        "id": 1,
+        "title": "保留ID的更新標題",
+        "body": "保留ID的更新內容"
+      }
+    ]
+  }
+}
+
+### 3. 查看更新結果 (ID 應該保持為 1)
+GET {{baseUrl}}/api/about?populate=blocks
+Authorization: Bearer {{apiToken}}
+
+### 4. 測試：不提供 ID 的更新 (會建立新 Component)
+PUT {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "blocks": [
+      {
+        "__component": "shared.quote",
+        "title": "沒有ID的新Component",
+        "body": "這會建立新的Component實例"
+      }
+    ]
+  }
+}
+
+### 5. 查看結果 (ID 會變成新的數字，例如 2)
+GET {{baseUrl}}/api/about?populate=blocks
+Authorization: Bearer {{apiToken}}
+
+### 6. 測試：只更新非 Dynamic Zone 欄位
+PUT {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "title": "只更新標題，不碰 blocks"
+  }
+}
+
+### 7. 驗證：blocks 應該保持不變
+GET {{baseUrl}}/api/about?populate=blocks
+Authorization: Bearer {{apiToken}}
+
+### 8. 測試：混合更新 - 既更新 title 又更新 blocks
+PUT {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "title": "更新的標題",
+    "blocks": [
+      {
+        "__component": "shared.quote",
+        "id": 1,
+        "title": "保持原有ID的引言",
+        "body": "這個Component保持原有的ID"
+      },
+      {
+        "__component": "shared.rich-text",
+        "content": "新增的富文字內容，會有新ID"
+      }
+    ]
+  }
+}
+
+### 9. 最終驗證
+GET {{baseUrl}}/api/about?populate=blocks
+Authorization: Bearer {{apiToken}}

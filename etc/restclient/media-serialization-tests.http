@@ -1,0 +1,97 @@
+### 測試 Media File 序列化問題
+
+@baseUrl = http://localhost:1337
+@apiToken = bd8cdd66daecf5db8dbdfbeccbbf4e4adba0a38834f72a66700e31b1ad5864051a3ede3c0f028aae7621ef3077cc2226ed6e61e8c68c80f58d53d70d2ac64f8c401ca0c004378a8d62480ea78190eb9c505571c1b538f659a4a06e8c39e5a1c39ede18dfb600b11511b4f61c84b9fbe92e77a90340122a79e98d8ef9915fb5f1
+
+### 測試 1: 正確的 Media File 序列化（只有 ID）
+POST {{baseUrl}}/api/articles
+Content-Type: application/json
+Authorization: Bearer {{apiToken}}
+
+{
+  "data": {
+    "title": "測試正確的媒體序列化",
+    "description": "這個測試只包含 ID",
+    "slug": "test-correct-media-serialization",
+    "cover": {
+      "id": 1
+    }
+  }
+}
+
+### 測試 2: 錯誤的 Media File 序列化（包含額外欄位）
+POST {{baseUrl}}/api/articles
+Content-Type: application/json
+Authorization: Bearer {{apiToken}}
+
+{
+  "data": {
+    "title": "測試錯誤的媒體序列化",
+    "description": "這個測試包含不應該發送的欄位",
+    "slug": "test-incorrect-media-serialization",
+    "cover": {
+      "id": 1,
+      "documentId": "should-not-be-here",
+      "name": "should-not-be-here.jpg",
+      "url": "/uploads/should-not-be-here.jpg",
+      "related": []
+    }
+  }
+}
+
+### 測試 3: 測試 Dynamic Zone 中的 Media File
+POST {{baseUrl}}/api/articles
+Content-Type: application/json
+Authorization: Bearer {{apiToken}}
+
+{
+  "data": {
+    "title": "測試動態區塊中的媒體",
+    "description": "測試 blocks 中的媒體檔案序列化",
+    "slug": "test-dynamic-zone-media",
+    "blocks": [
+      {
+        "__component": "shared.media",
+        "file": {
+          "id": 1
+        }
+      },
+      {
+        "__component": "shared.slider",
+        "files": [
+          {
+            "id": 1
+          },
+          {
+            "id": 2
+          }
+        ]
+      }
+    ]
+  }
+}
+
+### 測試 4: 錯誤的 Dynamic Zone Media File（包含額外欄位）
+POST {{baseUrl}}/api/articles
+Content-Type: application/json
+Authorization: Bearer {{apiToken}}
+
+{
+  "data": {
+    "title": "測試動態區塊錯誤媒體",
+    "description": "這個測試在 blocks 中包含錯誤的媒體檔案序列化",
+    "slug": "test-dynamic-zone-incorrect-media",
+    "blocks": [
+      {
+        "__component": "shared.media",
+        "file": {
+          "id": 1,
+          "related": [],
+          "folder": null,
+          "folderPath": "/",
+          "documentId": "some-doc-id"
+        }
+      }
+    ]
+  }
+}

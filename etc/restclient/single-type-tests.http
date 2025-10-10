@@ -1,0 +1,100 @@
+### Single Type Provider 測試
+### 專門測試 Global 和 About Single Types
+
+@baseUrl = http://localhost:1337
+@apiToken = bd8cdd66daecf5db8dbdfbeccbbf4e4adba0a38834f72a66700e31b1ad5864051a3ede3c0f028aae7621ef3077cc2226ed6e61e8c68c80f58d53d70d2ac64f8c401ca0c004378a8d62480ea78190eb9c505571c1b538f659a4a06e8c39e5a1c39ede18dfb600b11511b4f61c84b9fbe92e77a90340122a79e98d8ef9915fb5f1
+
+### Global Single Type 測試
+
+### 1. Global - 基本 GET 請求
+GET {{baseUrl}}/api/global
+Authorization: Bearer {{apiToken}}
+
+### 2. Global - 檢查回應格式和欄位
+GET {{baseUrl}}/api/global
+Authorization: Bearer {{apiToken}}
+Accept: application/json
+
+### 3. Global - 帶 populate 的 GET 請求
+GET {{baseUrl}}/api/global?populate=*
+Authorization: Bearer {{apiToken}}
+
+### 4. Global - 測試更新 (PUT)
+PUT {{baseUrl}}/api/global
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "siteName": "REST Client 測試 - {{$datetime iso8601}}",
+    "siteDescription": "這是透過 REST Client 更新的描述"
+  }
+}
+
+### 5. Global - 驗證更新結果
+GET {{baseUrl}}/api/global
+Authorization: Bearer {{apiToken}}
+
+### About Single Type 測試
+
+### 6. About - 基本 GET 請求
+GET {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+
+### 7. About - 帶 populate 的 GET 請求
+GET {{baseUrl}}/api/about?populate=*
+Authorization: Bearer {{apiToken}}
+
+### 8. About - 測試更新 (PUT)
+PUT {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "data": {
+    "title": "REST Client 測試標題 - {{$datetime iso8601}}"
+  }
+}
+
+### 9. About - 驗證更新結果
+GET {{baseUrl}}/api/about
+Authorization: Bearer {{apiToken}}
+
+### 權限測試
+
+### 10. Global - 無 Token 測試 (檢查公開權限)
+GET {{baseUrl}}/api/global
+
+### 11. About - 無 Token 測試 (檢查公開權限)
+GET {{baseUrl}}/api/about
+
+### 錯誤測試
+
+### 12. 測試不存在的 Single Type
+GET {{baseUrl}}/api/nonexistent-single-type
+Authorization: Bearer {{apiToken}}
+
+### 13. 測試錯誤的更新資料格式
+PUT {{baseUrl}}/api/global
+Authorization: Bearer {{apiToken}}
+Content-Type: application/json
+
+{
+  "invalidFormat": {
+    "siteName": "這應該會失敗"
+  }
+}
+
+### 14. 測試無效的 API Token
+GET {{baseUrl}}/api/global
+Authorization: Bearer invalid-token-here
+
+### Content Types 檢查
+
+### 15. 檢查所有可用的 Content Types
+GET {{baseUrl}}/admin/content-manager/content-types
+Authorization: Bearer {{apiToken}}
+
+### 16. 檢查 Single Types 狀態
+GET {{baseUrl}}/admin/content-manager/single-types
+Authorization: Bearer {{apiToken}}

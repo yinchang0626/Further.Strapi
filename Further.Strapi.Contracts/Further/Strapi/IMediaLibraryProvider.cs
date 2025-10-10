@@ -6,28 +6,6 @@ using System.Threading.Tasks;
 namespace Further.Strapi;
 
 /// <summary>
-/// Strapi Media Library 檔案模型
-/// </summary>
-public class StrapiMediaFile
-{
-    public int Id { get; set; }
-    public string DocumentId { get; set; } = string.Empty;
-    public string Name { get; set; } = string.Empty;
-    public string Url { get; set; } = string.Empty;
-    public string MimeType { get; set; } = string.Empty;
-    public double Size { get; set; }
-    public int Width { get; set; }
-    public int Height { get; set; }
-    public string AlternativeText { get; set; } = string.Empty;
-    public string Caption { get; set; } = string.Empty;
-    public DateTime CreatedAt { get; set; }
-    public DateTime UpdatedAt { get; set; }
-    public string Ext { get; set; } = string.Empty;
-    public string Hash { get; set; } = string.Empty;
-    public string Provider { get; set; } = string.Empty;
-}
-
-/// <summary>
 /// 檔案上傳請求模型
 /// </summary>
 public class FileUploadRequest
@@ -72,27 +50,27 @@ public interface IMediaLibraryProvider
     /// </summary>
     /// <param name="fileUpload">檔案上傳請求</param>
     /// <returns>上傳後的檔案資訊</returns>
-    Task<StrapiMediaFile> UploadAsync(FileUploadRequest fileUpload);
+    Task<StrapiMediaField> UploadAsync(FileUploadRequest fileUpload);
 
     /// <summary>
     /// 上傳檔案並關聯到特定的內容項目
     /// </summary>
     /// <param name="entryFileUpload">關聯檔案上傳請求</param>
     /// <returns>上傳後的檔案資訊</returns>
-    Task<StrapiMediaFile> UploadEntryFileAsync(EntryFileUploadRequest entryFileUpload);
+    Task<StrapiMediaField> UploadEntryFileAsync(EntryFileUploadRequest entryFileUpload);
 
     /// <summary>
     /// 取得單一檔案資訊
     /// </summary>
     /// <param name="fileId">檔案 ID</param>
     /// <returns>檔案資訊</returns>
-    Task<StrapiMediaFile> GetAsync(int fileId);
+    Task<StrapiMediaField> GetAsync(int fileId);
 
     /// <summary>
     /// 取得檔案列表
     /// </summary>
     /// <returns>檔案列表</returns>
-    Task<List<StrapiMediaFile>> GetListAsync();
+    Task<List<StrapiMediaField>> GetListAsync();
 
     /// <summary>
     /// 更新檔案資訊 (metadata)
@@ -100,7 +78,7 @@ public interface IMediaLibraryProvider
     /// <param name="fileId">檔案 ID</param>
     /// <param name="updateRequest">更新請求</param>
     /// <returns>更新後的檔案資訊</returns>
-    Task<StrapiMediaFile> UpdateFileInfoAsync(int fileId, FileInfoUpdateRequest updateRequest);
+    Task<StrapiMediaField> UpdateFileInfoAsync(int fileId, FileInfoUpdateRequest updateRequest);
 
     /// <summary>
     /// 刪除檔案

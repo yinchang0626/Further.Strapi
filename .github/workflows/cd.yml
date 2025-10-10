@@ -76,21 +76,10 @@ jobs:
       if: steps.checkTag.outputs.exists == 'false'
       run: |
         for package in ./shipping/*.nupkg; do
-          echo "� Launching $package to NuGet.org..."
+          echo "🚀 Launching $package to NuGet.org..."
           dotnet nuget push "$package" \
             --source "https://api.nuget.org/v3/index.json" \
             --api-key ${{ secrets.NUGET_API_KEY }} \
-            --skip-duplicate
-        done
-
-    - name: "📡 Deploy to GitHub Packages"
-      if: steps.checkTag.outputs.exists == 'false'
-      run: |
-        for package in ./shipping/*.nupkg; do
-          echo "� Deploying $package to GitHub Packages..."
-          dotnet nuget push "$package" \
-            --source "https://nuget.pkg.github.com/yinchang0626/index.json" \
-            --api-key ${{ secrets.GITHUB_TOKEN }} \
             --skip-duplicate
         done
 
@@ -125,7 +114,7 @@ jobs:
           ### ⚡ Release Speed
           - ✅ Rapid validation: Passed
           - ✅ Package creation: Completed
-          - ✅ Multi-platform deployment: Done
+          - ✅ NuGet.org deployment: Done
           
           ### 📊 Quality Metrics
           - Testing coverage: See [Codecov](https://codecov.io/gh/yinchang0626/Further.Strapi)
@@ -141,11 +130,3 @@ jobs:
         files: ./shipping/*.nupkg
         draft: false
         prerelease: false
-
-    - name: "💾 Archive release artifacts"
-      if: steps.checkTag.outputs.exists == 'false'
-      uses: actions/upload-artifact@v4
-      with:
-        name: "lightning-release-v${{ steps.getVersion.outputs.version }}"
-        path: ./shipping/*.nupkg
-        retention-days: 30

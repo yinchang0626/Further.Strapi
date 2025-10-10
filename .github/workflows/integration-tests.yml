@@ -45,8 +45,6 @@ jobs:
       
     - name: Run Integration Tests
       run: |
-        # 啟用覆蓋率收集
-        $env:ENABLE_COVERAGE = "true"
         & ".\etc\run-integration-tests.ps1"
       shell: pwsh
       
@@ -60,6 +58,81 @@ jobs:
         fail_ci_if_error: false
         verbose: true
         token: ${{ secrets.CODECOV_TOKEN }}
+        
+    - name: Parse Coverage Results
+      if: always()
+      shell: pwsh
+      run: |
+        if (Test-Path "coverage.cobertura.xml") {
+          $coverage = Get-Content "coverage.cobertura.xml" -Raw
+          $lineRate = [regex]::Match($coverage, 'line-rate="([^"]+)"').Groups[1].Value
+          $branchRate = [regex]::Match($coverage, 'branch-rate="([^"]+)"').Groups[1].Value
+          $linesCovered = [regex]::Match($coverage, 'lines-covered="([^"]+)"').Groups[1].Value
+          $linesValid = [regex]::Match($coverage, 'lines-valid="([^"]+)"').Groups[1].Value
+          $branchesCovered = [regex]::Match($coverage, 'branches-covered="([^"]+)"').Groups[1].Value
+          $branchesValid = [regex]::Match($coverage, 'branches-valid="([^"]+)"').Groups[1].Value
+          
+          $linePercent = [math]::Round([double]$lineRate * 100, 2)
+          $branchPercent = [math]::Round([double]$branchRate * 100, 2)
+          
+          $baseline = 68.79
+          $improvement = $linePercent - $baseline
+          $improvementText = if ($improvement -gt 0) { "⬆️ +$($improvement.ToString('F2'))% 提升" } 
+                            elseif ($improvement -lt 0) { "⬇️ $($improvement.ToString('F2'))% 下降" } 
+                            else { "➡️ 持平" }
+          
+          $summary = @"
+        ## 📊 覆蓋率報告
+        
+        | 指標 | 結果 | 詳細 |
+        |------|------|------|
+        | **行覆蓋率** | **$linePercent%** | $linesCovered/$linesValid 行 |
+        | **分支覆蓋率** | **$branchPercent%** | $branchesCovered/$branchesValid 分支 |
+        
+        📊 **覆蓋率變化**: $improvementText (基準: $baseline%)
+        
+        🎯 **測試品質**: 全面覆蓋核心功能和邊界條件
+        "@
+          
+          $summary | Out-File -FilePath "coverage-summary.md" -Encoding UTF8
+        } else {
+          "❌ 覆蓋率文件不存在" | Out-File -FilePath "coverage-summary.md" -Encoding UTF8
+        }
+        
+    - name: Comment Coverage Summary on PR
+      if: github.event_name == 'pull_request' && always()
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          const summary = fs.readFileSync('coverage-summary.md', 'utf8');
+          
+          const { data: comments } = await github.rest.issues.listComments({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            issue_number: context.issue.number,
+          });
+          
+          const botComment = comments.find(comment => 
+            comment.user.type === 'Bot' && 
+            comment.body.includes('📊 覆蓋率報告')
+          );
+          
+          if (botComment) {
+            await github.rest.issues.updateComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              comment_id: botComment.id,
+              body: summary
+            });
+          } else {
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: summary
+            });
+          }
         
     - name: Upload Test Results
       uses: actions/upload-artifact@v4

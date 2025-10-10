@@ -266,6 +266,14 @@ logs/
 # Coverage reports
 coverage/
 TestResults/
+*.cobertura.xml
+coverage.cobertura.xml
+coverage.json
+coverage.xml
+*.coverage
+*.coveragexml
+*.dcvr
+coverage-summary.md
 
 # ABP Suite
 .suite/

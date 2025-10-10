@@ -2,6 +2,7 @@ using Further.Strapi.Tests.Models;
 using Shouldly;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
@@ -73,41 +74,75 @@ public class ArticleCrudTests : StrapiRealIntegrationTestBase
     [Fact]
     public async Task Article_Create_ShouldWork()
     {
-        // Arrange
+        // Arrange - 先上傳檔案，再創建文章
         var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
-        var newArticle = new Article
-        {
-            Title = "測試文章標題",
-            Description = "這是一個測試文章的描述內容",
-            Slug = $"test-article-slug-{timestamp}",
-            Cover = new StrapiMediaField
-            {
-                Id = 1 // 測試 Cover 檔案
-            },
-            Blocks = new List<IStrapiComponent>
-            {
-                new SharedRichTextComponent
-                {
-                    Body = "這是豐富文本內容"
-                },
-                new SharedMediaComponent
-                {
-                    File = new StrapiMediaField { Id = 1 }
-                },
-                new SharedQuoteComponent
-                {
-                    Title = "測試引言",
-                    Body = "這是引言內容"
-                }
-            }
-        };
-
+        var mediaProvider = GetRequiredService<IMediaLibraryProvider>();
+        int? coverFileId = null;
+        int? blockFileId = null;
         string? documentId = null;
 
         try
         {
+            // 步驟 1: 上傳封面檔案
+            _output.WriteLine("📁 步驟 1: 上傳封面檔案");
+            var coverContent = "封面檔案內容";
+            var coverBytes = System.Text.Encoding.UTF8.GetBytes(coverContent);
+            var coverStream = new MemoryStream(coverBytes);
+            var coverFile = await mediaProvider.UploadAsync(new FileUploadRequest
+            {
+                FileStream = coverStream,
+                FileName = $"cover-{timestamp}.txt",
+                ContentType = "text/plain",
+                AlternativeText = "測試封面檔案"
+            });
+            coverFileId = coverFile.Id;
+            _output.WriteLine($"✅ 上傳封面檔案成功，ID: {coverFileId}");
+
+            // 步驟 2: 上傳區塊中使用的檔案
+            _output.WriteLine("📁 步驟 2: 上傳區塊檔案");
+            var blockFileContent = "區塊檔案內容";
+            var blockFileBytes = System.Text.Encoding.UTF8.GetBytes(blockFileContent);
+            var blockFileStream = new MemoryStream(blockFileBytes);
+            var blockFile = await mediaProvider.UploadAsync(new FileUploadRequest
+            {
+                FileStream = blockFileStream,
+                FileName = $"block-file-{timestamp}.txt",
+                ContentType = "text/plain",
+                AlternativeText = "測試區塊檔案"
+            });
+            blockFileId = blockFile.Id;
+            _output.WriteLine($"✅ 上傳區塊檔案成功，ID: {blockFileId}");
+
+            // 步驟 3: 創建包含這些檔案的文章
+            var newArticle = new Article
+            {
+                Title = "測試文章標題",
+                Description = "這是一個測試文章的描述內容",
+                Slug = $"test-article-slug-{timestamp}",
+                Cover = new StrapiMediaField
+                {
+                    Id = coverFileId.Value // 使用實際上傳的檔案 ID
+                },
+                Blocks = new List<IStrapiComponent>
+                {
+                    new SharedRichTextComponent
+                    {
+                        Body = "這是豐富文本內容"
+                    },
+                    new SharedMediaComponent
+                    {
+                        File = new StrapiMediaField { Id = blockFileId.Value } // 使用實際上傳的檔案 ID
+                    },
+                    new SharedQuoteComponent
+                    {
+                        Title = "測試引言",
+                        Body = "這是引言內容"
+                    }
+                }
+            };
+
             // Act
-            _output.WriteLine("開始創建文章...");
+            _output.WriteLine("📝 步驟 3: 開始創建文章...");
             documentId = await _articleProvider.CreateAsync(newArticle);
 
             // Assert
@@ -122,17 +157,44 @@ public class ArticleCrudTests : StrapiRealIntegrationTestBase
         }
         finally
         {
-            // Cleanup
+            // Cleanup - 清理順序：文章 -> 檔案
             if (!string.IsNullOrEmpty(documentId))
             {
                 try
                 {
                     await _articleProvider.DeleteAsync(documentId);
-                    _output.WriteLine($"🗑️ 已清理測試資料: {documentId}");
+                    _output.WriteLine($"🗑️ 已清理測試文章: {documentId}");
                 }
                 catch (Exception ex)
                 {
-                    _output.WriteLine($"⚠️ 清理失敗: {ex.Message}");
+                    _output.WriteLine($"⚠️ 清理文章失敗: {ex.Message}");
+                }
+            }
+
+            // 清理上傳的檔案
+            if (coverFileId.HasValue)
+            {
+                try
+                {
+                    await mediaProvider.DeleteAsync(coverFileId.Value);
+                    _output.WriteLine($"🗑️ 已清理封面檔案: {coverFileId}");
+                }
+                catch (Exception ex)
+                {
+                    _output.WriteLine($"⚠️ 清理封面檔案失敗: {ex.Message}");
+                }
+            }
+
+            if (blockFileId.HasValue)
+            {
+                try
+                {
+                    await mediaProvider.DeleteAsync(blockFileId.Value);
+                    _output.WriteLine($"🗑️ 已清理區塊檔案: {blockFileId}");
+                }
+                catch (Exception ex)
+                {
+                    _output.WriteLine($"⚠️ 清理區塊檔案失敗: {ex.Message}");
                 }
             }
         }
@@ -185,32 +247,85 @@ public class ArticleCrudTests : StrapiRealIntegrationTestBase
     [Fact]
     public async Task Article_Update_ShouldWork()
     {
-        // Arrange - 先創建一個包含 Cover 和 Blocks 的文章
+        // Arrange - 先上傳檔案，然後創建一個包含 Cover 和 Blocks 的文章
         var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
-        var originalArticle = new Article
-        {
-            Title = "原始標題",
-            Description = "原始描述內容", 
-            Slug = $"original-slug-{timestamp}",
-            Cover = new StrapiMediaField { Id = 1 },
-            Blocks = new List<IStrapiComponent>
-            {
-                new SharedRichTextComponent { Body = "原始內容" }
-            }
-        };
-
-        var documentId = await _articleProvider.CreateAsync(originalArticle);
-        _output.WriteLine($"📝 創建原始文章: {documentId}");
+        var mediaProvider = GetRequiredService<IMediaLibraryProvider>();
+        int? coverFileId = null;
+        int? blockFileId = null;
+        string documentId = null;
 
         try
         {
+            // 步驟 1: 上傳封面檔案
+            _output.WriteLine("📁 步驟 1: 上傳原始封面檔案");
+            var originalCoverContent = "原始封面檔案內容";
+            var originalCoverBytes = System.Text.Encoding.UTF8.GetBytes(originalCoverContent);
+            var originalCoverStream = new MemoryStream(originalCoverBytes);
+            var originalCoverFile = await mediaProvider.UploadAsync(new FileUploadRequest
+            {
+                FileStream = originalCoverStream,
+                FileName = $"original-cover-{timestamp}.txt",
+                ContentType = "text/plain",
+                AlternativeText = "原始封面檔案"
+            });
+            coverFileId = originalCoverFile.Id;
+            _output.WriteLine($"✅ 上傳原始封面檔案成功，ID: {coverFileId}");
+
+            // 步驟 2: 上傳區塊中使用的檔案
+            _output.WriteLine("📁 步驟 2: 上傳區塊檔案");
+            var blockFileContent = "區塊檔案內容";
+            var blockFileBytes = System.Text.Encoding.UTF8.GetBytes(blockFileContent);
+            var blockFileStream = new MemoryStream(blockFileBytes);
+            var blockFile = await mediaProvider.UploadAsync(new FileUploadRequest
+            {
+                FileStream = blockFileStream,
+                FileName = $"block-file-{timestamp}.txt",
+                ContentType = "text/plain",
+                AlternativeText = "區塊檔案"
+            });
+            blockFileId = blockFile.Id;
+            _output.WriteLine($"✅ 上傳區塊檔案成功，ID: {blockFileId}");
+
+            // 步驟 3: 創建包含這些檔案的原始文章
+            _output.WriteLine("📝 步驟 3: 創建原始文章");
+            var originalArticle = new Article
+            {
+                Title = "原始標題",
+                Description = "原始描述內容", 
+                Slug = $"original-slug-{timestamp}",
+                Cover = new StrapiMediaField { Id = coverFileId.Value },
+                Blocks = new List<IStrapiComponent>
+                {
+                    new SharedRichTextComponent { Body = "原始內容" }
+                }
+            };
+
+            documentId = await _articleProvider.CreateAsync(originalArticle);
+            _output.WriteLine($"✅ 創建原始文章成功: {documentId}");
+
+            // 步驟 4: 上傳新的封面檔案用於更新
+            _output.WriteLine("📁 步驟 4: 上傳新封面檔案");
+            var newCoverContent = "更新後的封面檔案內容";
+            var newCoverBytes = System.Text.Encoding.UTF8.GetBytes(newCoverContent);
+            var newCoverStream = new MemoryStream(newCoverBytes);
+            var newCoverFile = await mediaProvider.UploadAsync(new FileUploadRequest
+            {
+                FileStream = newCoverStream,
+                FileName = $"updated-cover-{timestamp}.txt",
+                ContentType = "text/plain",
+                AlternativeText = "更新後的封面檔案"
+            });
+            var newCoverFileId = newCoverFile.Id;
+            _output.WriteLine($"✅ 上傳新封面檔案成功，ID: {newCoverFileId}");
+
             // Act - 更新文章，包含新的 Cover 和 Blocks
+            _output.WriteLine("📝 步驟 5: 更新文章");
             var updatedArticle = new Article
             {
                 Title = "更新後的標題",
                 Description = "這是更新後的描述內容，比原來更詳細",
                 Slug = $"updated-slug-{timestamp}", // 使用動態 slug
-                Cover = new StrapiMediaField { Id = 2 }, // 更換封面
+                Cover = new StrapiMediaField { Id = newCoverFileId }, // 更換封面
                 Blocks = new List<IStrapiComponent>
                 {
                     new SharedRichTextComponent { Body = "更新後的內容" },
@@ -221,7 +336,7 @@ public class ArticleCrudTests : StrapiRealIntegrationTestBase
                     },
                     new SharedMediaComponent
                     {
-                        File = new StrapiMediaField { Id = 2 }
+                        File = new StrapiMediaField { Id = blockFileId.Value }
                     }
                 }
             };
@@ -243,12 +358,56 @@ public class ArticleCrudTests : StrapiRealIntegrationTestBase
             _output.WriteLine($"   新標題: {retrievedArticle.Title}");
             _output.WriteLine($"   新描述: {retrievedArticle.Description}");
             _output.WriteLine($"   新Slug: {retrievedArticle.Slug}");
+            
+            // 驗證封面檔案是否正確更新
+            if (retrievedArticle.Cover != null)
+            {
+                _output.WriteLine($"   封面檔案ID: {retrievedArticle.Cover.Id}");
+                retrievedArticle.Cover.Id.ShouldBe(newCoverFileId);
+            }
         }
         finally
         {
-            // Cleanup
-            await _articleProvider.DeleteAsync(documentId);
-            _output.WriteLine($"🗑️ 已清理測試資料: {documentId}");
+            // Cleanup - 清理順序：文章 -> 檔案
+            if (!string.IsNullOrEmpty(documentId))
+            {
+                try
+                {
+                    await _articleProvider.DeleteAsync(documentId);
+                    _output.WriteLine($"🗑️ 已清理測試文章: {documentId}");
+                }
+                catch (Exception ex)
+                {
+                    _output.WriteLine($"⚠️ 清理文章失敗: {ex.Message}");
+                }
+            }
+
+            // 清理上傳的檔案
+            if (coverFileId.HasValue)
+            {
+                try
+                {
+                    await mediaProvider.DeleteAsync(coverFileId.Value);
+                    _output.WriteLine($"🗑️ 已清理原始封面檔案: {coverFileId}");
+                }
+                catch (Exception ex)
+                {
+                    _output.WriteLine($"⚠️ 清理原始封面檔案失敗: {ex.Message}");
+                }
+            }
+
+            if (blockFileId.HasValue)
+            {
+                try
+                {
+                    await mediaProvider.DeleteAsync(blockFileId.Value);
+                    _output.WriteLine($"🗑️ 已清理區塊檔案: {blockFileId}");
+                }
+                catch (Exception ex)
+                {
+                    _output.WriteLine($"⚠️ 清理區塊檔案失敗: {ex.Message}");
+                }
+            }
         }
     }
 
@@ -365,27 +524,42 @@ public class ArticleCrudTests : StrapiRealIntegrationTestBase
     [Fact]
     public async Task Article_Create_WithAuthor_ShouldWork()
     {
-        // Arrange - 創建包含作者的文章
+        // Arrange - 先創建作者，再創建包含作者關聯的文章
         var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
-        var articleWithAuthor = new Article
-        {
-            Title = "包含作者的測試文章",
-            Description = "這個文章測試作者關聯功能",
-            Slug = $"article-with-author-{timestamp}",
-            
-            // 設定作者關聯 (使用有效的 DocumentId)
-            Author = new Author
-            {
-                DocumentId = "uevo4x997i3y1anuvogqmii1" // 使用 HTTP 測試中有效的 DocumentId
-            }
-        };
-
+        var authorProvider = GetRequiredService<ICollectionTypeProvider<Author>>();
+        string? authorDocumentId = null;
         string? documentId = null;
 
         try
         {
+            // 步驟 1: 先創建作者
+            _output.WriteLine("📝 步驟 1: 創建測試作者");
+            var author = new Author
+            {
+                Name = $"測試作者-{timestamp}",
+                Email = $"author-{timestamp}@test.com"
+            };
+            
+            authorDocumentId = await authorProvider.CreateAsync(author);
+            authorDocumentId.ShouldNotBeNullOrEmpty();
+            _output.WriteLine($"✅ 成功創建作者，DocumentId: {authorDocumentId}");
+
+            // 步驟 2: 創建包含作者關聯的文章
+            var articleWithAuthor = new Article
+            {
+                Title = "包含作者的測試文章",
+                Description = "這個文章測試作者關聯功能",
+                Slug = $"article-with-author-{timestamp}",
+                
+                // 設定作者關聯 (使用動態創建的 DocumentId)
+                Author = new Author
+                {
+                    DocumentId = authorDocumentId
+                }
+            };
+
             // Act
-            _output.WriteLine("開始創建包含作者的文章...");
+            _output.WriteLine("📝 步驟 2: 開始創建包含作者的文章...");
             
             // 先檢查 StrapiWriteSerializer 如何處理這個物件
             var cleaner = GetRequiredService<StrapiWriteSerializer>();
@@ -411,7 +585,7 @@ public class ArticleCrudTests : StrapiRealIntegrationTestBase
             {
                 _output.WriteLine("⚠️ Author 為 null - 可能原因:");
                 _output.WriteLine("   1. PopulateBuilder 沒有載入 author 關聯");
-                _output.WriteLine("   2. Strapi 中不存在 ID=1 的作者");
+                _output.WriteLine("   2. Strapi 中不存在對應的作者");
                 _output.WriteLine("   3. Author 關聯沒有被正確序列化");
                 
                 // 暫時不執行斷言，讓測試繼續
@@ -422,6 +596,11 @@ public class ArticleCrudTests : StrapiRealIntegrationTestBase
                 // 驗證作者關聯
                 _output.WriteLine($"✅ 作者 ID: {retrievedArticle.Author.Id}");
                 _output.WriteLine($"✅ 作者姓名: {retrievedArticle.Author.Name}");
+                _output.WriteLine($"✅ 作者 DocumentId: {retrievedArticle.Author.DocumentId}");
+                
+                // 驗證作者資料是否正確
+                retrievedArticle.Author.DocumentId.ShouldBe(authorDocumentId);
+                retrievedArticle.Author.Name.ShouldBe($"測試作者-{timestamp}");
             }
         }
         catch (Exception ex)
@@ -432,17 +611,30 @@ public class ArticleCrudTests : StrapiRealIntegrationTestBase
         }
         finally
         {
-            // Cleanup
+            // Cleanup - 先清理文章，再清理作者
             if (!string.IsNullOrEmpty(documentId))
             {
                 try
                 {
                     await _articleProvider.DeleteAsync(documentId);
-                    _output.WriteLine($"🗑️ 已清理測試資料: {documentId}");
+                    _output.WriteLine($"🗑️ 已清理測試文章: {documentId}");
                 }
                 catch (Exception cleanupEx)
                 {
-                    _output.WriteLine($"⚠️ 清理失敗: {cleanupEx.Message}");
+                    _output.WriteLine($"⚠️ 清理文章失敗: {cleanupEx.Message}");
+                }
+            }
+            
+            if (!string.IsNullOrEmpty(authorDocumentId))
+            {
+                try
+                {
+                    await authorProvider.DeleteAsync(authorDocumentId);
+                    _output.WriteLine($"🗑️ 已清理測試作者: {authorDocumentId}");
+                }
+                catch (Exception cleanupEx)
+                {
+                    _output.WriteLine($"⚠️ 清理作者失敗: {cleanupEx.Message}");
                 }
             }
         }

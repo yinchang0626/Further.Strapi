@@ -3,14 +3,16 @@
 
 @baseUrl = http://localhost:1337
 @apiToken = bd8cdd66daecf5db8dbdfbeccbbf4e4adba0a38834f72a66700e31b1ad5864051a3ede3c0f028aae7621ef3077cc2226ed6e61e8c68c80f58d53d70d2ac64f8c401ca0c004378a8d62480ea78190eb9c505571c1b538f659a4a06e8c39e5a1c39ede18dfb600b11511b4f61c84b9fbe92e77a90340122a79e98d8ef9915fb5f1
+
+# ⚠️ 注意：以下變數需要從實際的 API 回應中取得，請勿使用硬編碼值
 # 從步驟1取得的 Article Document ID
-@articleDocumentId = huhx424nhbm7vohwzcm4jn83
+@articleDocumentId = REPLACE_WITH_ACTUAL_ARTICLE_DOCUMENT_ID
 
-# 從步驟6取得的 Author Document ID
-@authorDocumentId = uevo4x997i3y1anuvogqmii1
+# 從作者創建API取得的 Author Document ID（請先執行 api-token-creation-tests.http 或相關測試創建作者）
+@authorDocumentId = REPLACE_WITH_ACTUAL_AUTHOR_DOCUMENT_ID
 
-# 從步驟7取得的 Category Document ID  
-@categoryDocumentId = tlsl7ccgkwmm4hgifn3qd9vp
+# 從分類創建API取得的 Category Document ID  
+@categoryDocumentId = REPLACE_WITH_ACTUAL_CATEGORY_DOCUMENT_ID
 
 # 從步驟8取得的完整 Article Document ID
 @completeArticleDocumentId = PUT_COMPLETE_ARTICLE_DOCUMENT_ID_HERE

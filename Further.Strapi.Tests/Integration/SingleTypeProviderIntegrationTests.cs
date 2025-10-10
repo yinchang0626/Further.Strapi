@@ -28,6 +28,9 @@ public class SingleTypeProviderIntegrationTests : StrapiRealIntegrationTestBase
     [Fact]
     public async Task GetAsync_Global_ShouldReturnGlobalSettings()
     {
+        // Arrange - 先嘗試初始化 Global，如果不存在的話
+        await EnsureGlobalInitializedAsync();
+
         // Act
         var result = await _globalProvider.GetAsync();
 
@@ -46,7 +49,10 @@ public class SingleTypeProviderIntegrationTests : StrapiRealIntegrationTestBase
     [Fact]
     public async Task UpdateAsync_Global_ShouldUpdateSuccessfully()
     {
-        // Arrange - 先取得目前的資料
+        // Arrange - 先確保 Global 已初始化
+        await EnsureGlobalInitializedAsync();
+        
+        // 取得目前的資料
         var currentGlobal = await _globalProvider.GetAsync();
         currentGlobal.ShouldNotBeNull();
 
@@ -58,7 +64,8 @@ public class SingleTypeProviderIntegrationTests : StrapiRealIntegrationTestBase
 
         // Act - 使用原始類別進行更新
         currentGlobal.SiteName = testSiteName;
-        currentGlobal.Favicon = new StrapiMediaField() { Id = 1 };
+        // 移除可能不存在的 Favicon 設定
+        // currentGlobal.Favicon = new StrapiMediaField() { Id = 1 };
         // 保持其他欄位不變
 
         var updatedDocumentId = await _globalProvider.UpdateAsync(currentGlobal);
@@ -92,6 +99,9 @@ public class SingleTypeProviderIntegrationTests : StrapiRealIntegrationTestBase
     [Fact]
     public async Task GetAsync_About_ShouldReturnAboutContent()
     {
+        // Arrange - 先嘗試初始化 About，如果不存在的話
+        await EnsureAboutInitializedAsync();
+
         // Act
         var result = await _aboutProvider.GetAsync();
 
@@ -107,7 +117,10 @@ public class SingleTypeProviderIntegrationTests : StrapiRealIntegrationTestBase
     [Fact]
     public async Task UpdateAsync_About_ShouldUpdateSuccessfully()
     {
-        // Arrange - 先取得目前的資料
+        // Arrange - 先確保 About 已初始化
+        await EnsureAboutInitializedAsync();
+        
+        // 取得目前的資料
         var currentAbout = await _aboutProvider.GetAsync();
         currentAbout.ShouldNotBeNull();
 
@@ -148,6 +161,84 @@ public class SingleTypeProviderIntegrationTests : StrapiRealIntegrationTestBase
             restoredAbout.Title.ShouldBe(originalTitle);
 
             _output.WriteLine($"Restored Title: {restoredAbout.Title}");
+        }
+    }
+
+    /// <summary>
+    /// 確保 Global Single Type 已經初始化
+    /// </summary>
+    private async Task EnsureGlobalInitializedAsync()
+    {
+        try
+        {
+            // 嘗試讀取現有資料
+            var existing = await _globalProvider.GetAsync();
+            if (existing != null)
+            {
+                _output.WriteLine("✅ Global 已存在，無需初始化");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            _output.WriteLine($"⚠️ Global 讀取失敗: {ex.Message}，開始初始化...");
+        }
+
+        // 如果讀取失敗或不存在，進行初始化
+        var initialGlobal = new Global
+        {
+            SiteName = "Further LiveKit",
+            SiteDescription = "一個基於 Strapi 的測試網站"
+        };
+
+        try
+        {
+            var documentId = await _globalProvider.UpdateAsync(initialGlobal);
+            _output.WriteLine($"✅ Global 初始化成功，DocumentId: {documentId}");
+        }
+        catch (Exception ex)
+        {
+            _output.WriteLine($"❌ Global 初始化失敗: {ex.Message}");
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// 確保 About Single Type 已經初始化
+    /// </summary>
+    private async Task EnsureAboutInitializedAsync()
+    {
+        try
+        {
+            // 嘗試讀取現有資料
+            var existing = await _aboutProvider.GetAsync();
+            if (existing != null)
+            {
+                _output.WriteLine("✅ About 已存在，無需初始化");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            _output.WriteLine($"⚠️ About 讀取失敗: {ex.Message}，開始初始化...");
+        }
+
+        // 如果讀取失敗或不存在，進行初始化
+        var initialAbout = new About
+        {
+            Title = "關於我們",
+            // 可以添加其他預設值
+        };
+
+        try
+        {
+            var documentId = await _aboutProvider.UpdateAsync(initialAbout);
+            _output.WriteLine($"✅ About 初始化成功，DocumentId: {documentId}");
+        }
+        catch (Exception ex)
+        {
+            _output.WriteLine($"❌ About 初始化失敗: {ex.Message}");
+            throw;
         }
     }
 }

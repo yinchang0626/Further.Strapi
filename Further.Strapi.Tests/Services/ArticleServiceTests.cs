@@ -200,25 +200,40 @@ public class ArticleServiceTests : StrapiRealIntegrationTestBase
     [Fact]
     public async Task ArticleService_CreateWithAuthor_ShouldWork()
     {
-        // Arrange
+        // Arrange - 先創建作者，再創建包含作者關聯的文章
         var timestamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
-        var articleWithAuthor = new Article
-        {
-            Title = $"包含作者的文章-{timestamp}",
-            Description = "這個文章包含作者關聯",
-            Slug = $"article-with-author-{timestamp}",
-            Author = new Author
-            {
-                DocumentId = "uevo4x997i3y1anuvogqmii1" // 使用測試中的有效 DocumentId
-            }
-        };
-
+        var authorProvider = GetRequiredService<ICollectionTypeProvider<Author>>();
+        string authorDocumentId = null;
         string documentId = null;
 
         try
         {
+            // 步驟 1: 先創建作者
+            _output.WriteLine("📝 步驟 1: 創建測試作者");
+            var author = new Author
+            {
+                Name = $"測試作者-{timestamp}",
+                Email = $"author-{timestamp}@test.com"
+            };
+            
+            authorDocumentId = await authorProvider.CreateAsync(author);
+            authorDocumentId.ShouldNotBeNullOrEmpty();
+            _output.WriteLine($"✅ 成功創建作者，DocumentId: {authorDocumentId}");
+
+            // 步驟 2: 創建包含作者關聯的文章
+            var articleWithAuthor = new Article
+            {
+                Title = $"包含作者的文章-{timestamp}",
+                Description = "這個文章包含作者關聯",
+                Slug = $"article-with-author-{timestamp}",
+                Author = new Author
+                {
+                    DocumentId = authorDocumentId // 使用動態創建的 DocumentId
+                }
+            };
+
             // Act
-            _output.WriteLine("📝 測試創建包含作者的文章...");
+            _output.WriteLine("📝 步驟 2: 測試創建包含作者的文章...");
             documentId = await _articleService.CreateArticleAsync(articleWithAuthor);
 
             // Assert
@@ -233,6 +248,10 @@ public class ArticleServiceTests : StrapiRealIntegrationTestBase
             if (retrievedArticle.Author != null)
             {
                 _output.WriteLine($"✅ 文章作者: {retrievedArticle.Author.Name} (DocumentId: {retrievedArticle.Author.DocumentId})");
+                
+                // 驗證作者資料是否正確
+                retrievedArticle.Author.DocumentId.ShouldBe(authorDocumentId);
+                retrievedArticle.Author.Name.ShouldBe($"測試作者-{timestamp}");
             }
             else
             {
@@ -241,17 +260,30 @@ public class ArticleServiceTests : StrapiRealIntegrationTestBase
         }
         finally
         {
-            // Cleanup
+            // Cleanup - 先清理文章，再清理作者
             if (!string.IsNullOrEmpty(documentId))
             {
                 try
                 {
                     await _articleService.DeleteArticleAsync(documentId);
-                    _output.WriteLine($"🗑️ 已清理測試資料: {documentId}");
+                    _output.WriteLine($"🗑️ 已清理測試文章: {documentId}");
                 }
                 catch (Exception cleanupEx)
                 {
-                    _output.WriteLine($"⚠️ 清理失敗: {cleanupEx.Message}");
+                    _output.WriteLine($"⚠️ 清理文章失敗: {cleanupEx.Message}");
+                }
+            }
+            
+            if (!string.IsNullOrEmpty(authorDocumentId))
+            {
+                try
+                {
+                    await authorProvider.DeleteAsync(authorDocumentId);
+                    _output.WriteLine($"🗑️ 已清理測試作者: {authorDocumentId}");
+                }
+                catch (Exception cleanupEx)
+                {
+                    _output.WriteLine($"⚠️ 清理作者失敗: {cleanupEx.Message}");
                 }
             }
         }

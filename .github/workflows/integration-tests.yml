@@ -1,0 +1,136 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  integration-tests:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+        
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: 'etc/strapi-integration-test/package-lock.json'
+        
+    - name: Cache .NET packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.nuget/packages
+        key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+        restore-keys: |
+          ${{ runner.os }}-nuget-
+          
+    - name: Install Node.js dependencies
+      working-directory: etc/strapi-integration-test
+      run: npm ci
+      
+    - name: Install Coverage Tools
+      run: |
+        dotnet tool install --global dotnet-reportgenerator-globaltool
+      shell: pwsh
+      
+    - name: Run Integration Tests
+      run: |
+        # 啟用覆蓋率收集
+        $env:ENABLE_COVERAGE = "true"
+        & ".\etc\run-integration-tests.ps1"
+      shell: pwsh
+      
+    - name: Generate Coverage Report
+      if: always()
+      run: |
+        if (Test-Path "coverage.cobertura.xml") {
+          reportgenerator "-reports:coverage.cobertura.xml" "-targetdir:coverage-report" "-reporttypes:Html;Badges;JsonSummary"
+          Write-Host "✅ Coverage report generated"
+          
+          # 讀取覆蓋率數據
+          if (Test-Path "coverage-report/Summary.json") {
+            $summary = Get-Content "coverage-report/Summary.json" | ConvertFrom-Json
+            $lineCoverage = $summary.summary.linecoverage
+            Write-Host "📊 Line Coverage: $lineCoverage%"
+            
+            # 設定 GitHub Actions output
+            echo "COVERAGE_PERCENTAGE=$lineCoverage" >> $env:GITHUB_OUTPUT
+          }
+        } else {
+          Write-Host "⚠️ No coverage file found"
+        }
+      shell: pwsh
+      id: coverage
+      
+    - name: Upload Coverage to Codecov
+      if: always()
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.cobertura.xml
+        flags: integration
+        name: codecov-integration-tests
+        fail_ci_if_error: false
+        
+    - name: Upload Test Results
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: test-results
+        path: |
+          TestResults/**/*.trx
+          coverage.cobertura.xml
+          coverage-report/
+          
+    - name: Comment Coverage on PR
+      if: github.event_name == 'pull_request' && always() && steps.coverage.outputs.COVERAGE_PERCENTAGE
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const coverage = '${{ steps.coverage.outputs.COVERAGE_PERCENTAGE }}';
+          const coverageFloat = parseFloat(coverage);
+          let coverageEmoji = '🔴';
+          if (coverageFloat >= 80) coverageEmoji = '🟢';
+          else if (coverageFloat >= 60) coverageEmoji = '🟡';
+          
+          const body = `## 📊 Test Coverage Report ${coverageEmoji}
+          
+          **Line Coverage:** ${coverage}%
+          
+          ${coverageFloat >= 80 ? '✅ Great coverage!' : 
+            coverageFloat >= 60 ? '⚠️ Coverage could be improved' : 
+            '❌ Low coverage - consider adding more tests'}
+          
+          [📋 View detailed coverage report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: body
+          });
+          
+    - name: Coverage Badge
+      if: always() && steps.coverage.outputs.COVERAGE_PERCENTAGE
+      uses: schneegans/dynamic-badges-action@v1.7.0
+      with:
+        auth: ${{ secrets.GITHUB_TOKEN }}
+        gistID: your-gist-id  # 需要創建一個 gist 來存放 badge
+        filename: coverage-badge.json
+        label: Coverage
+        message: ${{ steps.coverage.outputs.COVERAGE_PERCENTAGE }}%
+        color: ${{ steps.coverage.outputs.COVERAGE_PERCENTAGE >= 80 && 'green' || steps.coverage.outputs.COVERAGE_PERCENTAGE >= 60 && 'yellow' || 'red' }}

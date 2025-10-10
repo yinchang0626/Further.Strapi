@@ -1,4 +1,5 @@
 using Further.Strapi.Tests.Models;
+using Microsoft.Extensions.Options;
 using Shouldly;
 using System;
 using System.IO;
@@ -496,7 +497,10 @@ public class MediaLibraryProviderTests : StrapiRealIntegrationTestBase
             {
                 BaseAddress = new Uri("http://localhost:1337/")
             };
-            httpClient.DefaultRequestHeaders.Add("Authorization", "Bearer bd8cdd66daecf5db8dbdfbeccbbf4e4adba0a38834f72a66700e31b1ad5864051a3ede3c0f028aae7621ef3077cc2226ed6e61e8c68c80f58d53d70d2ac64f8c401ca0c004378a8d62480ea78190eb9c505571c1b538f659a4a06e8c39e5a1c39ede18dfb600b11511b4f61c84b9fbe92e77a90340122a79e98d8ef9915fb5f1");
+            
+            // 從配置中獲取正確的 token
+            var options = GetRequiredService<IOptions<StrapiOptions>>().Value;
+            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {options.StrapiToken}");
 
             // 創建表單
             var form = StrapiProtocol.MediaLibrary.CreateUploadForm(fileUpload);

@@ -1,0 +1,156 @@
+### API Token Creation Tests
+### 測試如何正確建立 Strapi API Token
+
+# 設定變數
+@baseUrl = http://localhost:1337
+@adminEmail = ci-admin@test.com
+@adminPassword = CIAdmin123!
+
+# 在下面設定從登入回應中獲得的 JWT Token (使用 accessToken 欄位)
+@jwtToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxIiwic2Vzc2lvbklkIjoiMmQzZjU0NmJhZGM3YjkwYWMyN2E0M2M5YjI2OWYwNDMiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzYwMTAwMjE3LCJleHAiOjE3NjAxMDIwMTd9.z0FXsI0q8afmURzETwiH7qqNHKS_NznQEeqQcv7VykM
+
+# 在下面設定從 API Token 建立回應中獲得的 API Token
+@apiToken = 22552275000a82951d2100c90043fe67b4d8d569587112db1a5e390ff683423898bd025a50bee2a0ff976044aca76edc4aeabb6881e7dbfdb2d819aa7ee02f5a754e0b596bd249ae1648f190a5c997ed4687886846ee3ca0a6c94e0109ba6f46121db9fffec39691c4358fad88f0d6005d7cd5b9e327617c1e9e8f7286165d91
+
+### 1. 登入管理員獲取 JWT Token
+POST {{baseUrl}}/admin/login
+Content-Type: application/json
+
+{
+  "email": "{{adminEmail}}",
+  "password": "{{adminPassword}}"
+}
+
+### 2. 獲取所有可用的權限
+GET {{baseUrl}}/admin/content-api/permissions
+Authorization: Bearer {{jwtToken}}
+
+### 3. 獲取所有可用的路由
+GET {{baseUrl}}/admin/content-api/routes
+Authorization: Bearer {{jwtToken}}
+
+### 4. 測試建立 Full Access Token ✅ 推薦使用
+POST {{baseUrl}}/admin/api-tokens
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "name": "test-full-access-token",
+  "description": "Test full access token",
+  "type": "full-access",
+  "lifespan": null
+}
+
+### 5. 測試建立 Custom Token - 最小權限集
+POST {{baseUrl}}/admin/api-tokens
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "name": "test-custom-minimal-token",
+  "description": "Test custom token with minimal permissions",
+  "type": "custom",
+  "permissions": [
+    "api::article.article.find",
+    "api::article.article.create",
+    "plugin::upload.content-api.find",
+    "plugin::upload.content-api.upload"
+  ],
+  "lifespan": null
+}
+
+### 6. 測試建立 Custom Token - 完整權限集
+POST {{baseUrl}}/admin/api-tokens
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "name": "test-custom-full-token",
+  "description": "Test custom token with full permissions",
+  "type": "custom",
+  "permissions": [
+    "api::article.article.find",
+    "api::article.article.findOne",
+    "api::article.article.create",
+    "api::article.article.update",
+    "api::article.article.delete",
+    "api::author.author.find",
+    "api::author.author.findOne",
+    "api::author.author.create",
+    "api::author.author.update",
+    "api::author.author.delete",
+    "api::category.category.find",
+    "api::category.category.findOne",
+    "api::category.category.create",
+    "api::category.category.update",
+    "api::category.category.delete",
+    "api::about.about.find",
+    "api::about.about.update",
+    "api::global.global.find",
+    "api::global.global.update",
+    "plugin::upload.content-api.upload",
+    "plugin::upload.content-api.find",
+    "plugin::upload.content-api.findOne",
+    "plugin::upload.content-api.destroy"
+  ],
+  "lifespan": null
+}
+
+### 7. 測試建立 Custom Token - 只有 Upload 權限
+POST {{baseUrl}}/admin/api-tokens
+Authorization: Bearer {{jwtToken}}
+Content-Type: application/json
+
+{
+  "name": "test-upload-only-token",
+  "description": "Test token with only upload permissions",
+  "type": "custom",
+  "permissions": [
+    "plugin::upload.content-api.find",
+    "plugin::upload.content-api.findOne",
+    "plugin::upload.content-api.upload",
+    "plugin::upload.content-api.destroy"
+  ],
+  "lifespan": null
+}
+
+### 10. 獲取現有的 API Tokens 列表
+GET {{baseUrl}}/admin/api-tokens
+Authorization: Bearer {{jwtToken}}
+
+### 11. 測試 API Token - 使用創建的 token 測試 API 存取 ✅
+GET {{baseUrl}}/api/articles
+Authorization: Bearer {{apiToken}}
+
+### 12. 測試 Upload API - 使用創建的 token ✅
+GET {{baseUrl}}/api/upload/files
+Authorization: Bearer {{apiToken}}
+
+### 13. 測試 Upload API - 上傳檔案 ✅
+POST {{baseUrl}}/api/upload
+Authorization: Bearer {{apiToken}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="files"; filename="test.txt"
+Content-Type: text/plain
+
+Test file content for upload
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+###############################################
+# 使用說明：
+# 1. 執行步驟 1 登入，複製回傳的 accessToken
+# 2. 將 JWT token 設定為 @jwtToken 變數
+# 3. 執行步驟 2-3 查看可用的權限和路由格式
+# 4. 執行步驟 4 建立 full-access token（推薦）
+# 5. 複製成功建立的 API token 作為 @apiToken 變數  
+# 6. 執行步驟 11-13 測試 API 存取
+# 
+# 測試結果：
+# ✅ 步驟 4: full-access token 建立成功
+# ✅ 步驟 11-13: Content API 和 Upload API 都正常工作
+# ❌ 步驟 14 以後: Users-Permissions 管理 API（已移除，非必要）
+#
+# 結論：使用 full-access type 可以解決所有 Content API 權限問題
+###############################################

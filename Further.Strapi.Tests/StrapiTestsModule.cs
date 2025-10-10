@@ -114,15 +114,11 @@ public class StrapiTestsModule : AbpModule
     
     private static void ConfigureStrapiForTesting(ServiceConfigurationContext context)
     {
-        // 為整合測試配置 Strapi 服務
-        context.Services.AddStrapi(builder =>
-        {
-            builder.ConfigureOptions(options =>
-            {
-                options.StrapiUrl = "http://localhost:1337/";
-                options.StrapiToken = "bd8cdd66daecf5db8dbdfbeccbbf4e4adba0a38834f72a66700e31b1ad5864051a3ede3c0f028aae7621ef3077cc2226ed6e61e8c68c80f58d53d70d2ac64f8c401ca0c004378a8d62480ea78190eb9c505571c1b538f659a4a06e8c39e5a1c39ede18dfb600b11511b4f61c84b9fbe92e77a90340122a79e98d8ef9915fb5f1";
-            });
-
-        });
+        // 從 appsettings.Test.json 綁定 StrapiOptions
+        var configuration = context.Services.GetConfiguration();
+        context.Services.Configure<StrapiOptions>(configuration.GetSection("Strapi"));
+        
+        // 註冊 Strapi 服務
+        context.Services.AddStrapi();
     }
 }

@@ -1,12 +1,11 @@
 # Further.Strapi
 
-[![Integration Tests](https://github.com/fs-tw/Further.LiveKit/actions/workflows/integration-tests.yml/badge.svg?branch=Further.Strapi)](https://github.com/fs-tw/Further.LiveKit/actions/workflows/integration-tests.yml)
-[![codecov](https://codecov.io/gh/fs-tw/Further.LiveKit/branch/Further.Strapi/graph/badge.svg?token=YOUR_CODECOV_TOKEN)](https://codecov.io/gh/fs-tw/Further.LiveKit)
-[![Coverage](https://img.shields.io/badge/Coverage-Dynamic-brightgreen)](https://codecov.io/gh/fs-tw/Further.LiveKit)
-[![NuGet](https://img.shields.io/nuget/v/Further.Strapi?logo=nuget&color=blue)](https://www.nuget.org/packages/Further.Strapi/)
-[![NuGet Downloads](https://img.shields.io/nuget/dt/Further.Strapi?logo=nuget&label=downloads)](https://www.nuget.org/packages/Further.Strapi/)
+[![Integration Tests](https://github.com/yinchang0626/Further.Strapi/actions/workflows/integration-tests.yml/badge.svg)](https://github.com/yinchang0626/Further.Strapi/actions/workflows/integration-tests.yml)
+[![Tests](https://img.shields.io/badge/tests-71%20passed-brightgreen?logo=github)](https://github.com/yinchang0626/Further.Strapi/actions)
+[![codecov](https://codecov.io/gh/yinchang0626/Further.Strapi/branch/main/graph/badge.svg)](https://codecov.io/gh/yinchang0626/Further.Strapi)
+[![Coverage Tree](https://codecov.io/gh/yinchang0626/Further.Strapi/branch/main/graphs/tree.svg)](https://codecov.io/gh/yinchang0626/Further.Strapi)
 [![.NET](https://img.shields.io/badge/.NET-9.0-blue.svg?logo=dotnet)](https://dotnet.microsoft.com/)
-[![ABP Framework](https://img.shields.io/badge/ABP%20Framework-9.3.5-green.svg?logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCA5TDEzLjA5IDE1Ljc0TDEyIDIyTDEwLjkxIDE1Ljc0TDQgOUwxMC45MSA4LjI2TDEyIDJaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K)](https://abp.io/)
+[![ABP Framework](https://img.shields.io/badge/ABP%20Framework-9.3.5-green.svg)](https://abp.io/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?logo=opensource)](LICENSE)
 
 A comprehensive .NET integration library for [Strapi v5](https://strapi.io/) headless CMS, built on top of the [ABP Framework](https://abp.io/).

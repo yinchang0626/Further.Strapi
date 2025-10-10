@@ -43,39 +43,12 @@ jobs:
       working-directory: etc/strapi-integration-test
       run: npm ci
       
-    - name: Install Coverage Tools
-      run: |
-        dotnet tool install --global dotnet-reportgenerator-globaltool
-      shell: pwsh
-      
     - name: Run Integration Tests
       run: |
         # 啟用覆蓋率收集
         $env:ENABLE_COVERAGE = "true"
         & ".\etc\run-integration-tests.ps1"
       shell: pwsh
-      
-    - name: Generate Coverage Report
-      if: always()
-      run: |
-        if (Test-Path "coverage.cobertura.xml") {
-          reportgenerator "-reports:coverage.cobertura.xml" "-targetdir:coverage-report" "-reporttypes:Html;Badges;JsonSummary"
-          Write-Host "✅ Coverage report generated"
-          
-          # 讀取覆蓋率數據
-          if (Test-Path "coverage-report/Summary.json") {
-            $summary = Get-Content "coverage-report/Summary.json" | ConvertFrom-Json
-            $lineCoverage = $summary.summary.linecoverage
-            Write-Host "📊 Line Coverage: $lineCoverage%"
-            
-            # 設定 GitHub Actions output
-            echo "COVERAGE_PERCENTAGE=$lineCoverage" >> $env:GITHUB_OUTPUT
-          }
-        } else {
-          Write-Host "⚠️ No coverage file found"
-        }
-      shell: pwsh
-      id: coverage
       
     - name: Upload Coverage to Codecov
       if: always()
@@ -86,9 +59,9 @@ jobs:
         name: codecov-integration-tests
         fail_ci_if_error: false
         verbose: true
-        token: ${{ secrets.CODECOV_TOKEN }}  # 需要在 GitHub Secrets 中設定
+        token: ${{ secrets.CODECOV_TOKEN }}
         
-    - name: Upload Test Results (Always)
+    - name: Upload Test Results
       uses: actions/upload-artifact@v4
       if: always()
       with:
@@ -96,7 +69,6 @@ jobs:
         path: |
           TestResults/
           coverage.cobertura.xml
-          coverage-report/
         retention-days: 30
         
     - name: Publish Test Results
@@ -107,44 +79,3 @@ jobs:
         path: TestResults/*.trx
         reporter: dotnet-trx
         fail-on-error: false
-          
-    - name: Comment Coverage on PR
-      if: github.event_name == 'pull_request' && always() && steps.coverage.outputs.COVERAGE_PERCENTAGE
-      uses: actions/github-script@v7
-      with:
-        script: |
-          const coverage = '${{ steps.coverage.outputs.COVERAGE_PERCENTAGE }}';
-          const coverageFloat = parseFloat(coverage);
-          let coverageEmoji = '🔴';
-          if (coverageFloat >= 80) coverageEmoji = '🟢';
-          else if (coverageFloat >= 60) coverageEmoji = '🟡';
-          
-          const body = `## 📊 Test Coverage Report ${coverageEmoji}
-          
-          **Line Coverage:** ${coverage}%
-          
-          ${coverageFloat >= 80 ? '✅ Great coverage!' : 
-            coverageFloat >= 60 ? '⚠️ Coverage could be improved' : 
-            '❌ Low coverage - consider adding more tests'}
-          
-          [📋 View detailed coverage report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})`;
-          
-          github.rest.issues.createComment({
-            issue_number: context.issue.number,
-            owner: context.repo.owner,
-            repo: context.repo.repo,
-            body: body
-          });
-          
-    - name: Coverage Badge Info
-      if: always() && steps.coverage.outputs.COVERAGE_PERCENTAGE
-      run: |
-        $coverage = "${{ steps.coverage.outputs.COVERAGE_PERCENTAGE }}"
-        $color = if ([float]$coverage -ge 80) { "green" } elseif ([float]$coverage -ge 60) { "yellow" } else { "red" }
-        
-        # 創建徽章 URL (使用 shields.io - 不需要 Gist)
-        $badgeUrl = "https://img.shields.io/badge/Coverage-${coverage}%25-${color}"
-        Write-Host "🏆 Coverage Badge URL: $badgeUrl"
-        Write-Host "📝 您可以在 README.md 中使用這個 URL 來顯示動態覆蓋率"
-        Write-Host "💡 或者使用 Codecov 的官方徽章：https://codecov.io/gh/fs-tw/Further.LiveKit/branch/Further.Strapi/graph/badge.svg"
-      shell: pwsh

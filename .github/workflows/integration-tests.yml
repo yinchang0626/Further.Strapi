@@ -123,14 +123,3 @@ jobs:
             repo: context.repo.repo,
             body: body
           });
-          
-    - name: Coverage Badge
-      if: always() && steps.coverage.outputs.COVERAGE_PERCENTAGE
-      uses: schneegans/dynamic-badges-action@v1.7.0
-      with:
-        auth: ${{ secrets.GITHUB_TOKEN }}
-        gistID: your-gist-id  # 需要創建一個 gist 來存放 badge
-        filename: coverage-badge.json
-        label: Coverage
-        message: ${{ steps.coverage.outputs.COVERAGE_PERCENTAGE }}%
-        color: ${{ steps.coverage.outputs.COVERAGE_PERCENTAGE >= 80 && 'green' || steps.coverage.outputs.COVERAGE_PERCENTAGE >= 60 && 'yellow' || 'red' }}

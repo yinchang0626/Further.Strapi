@@ -85,16 +85,28 @@ jobs:
         flags: integration
         name: codecov-integration-tests
         fail_ci_if_error: false
+        verbose: true
+        token: ${{ secrets.CODECOV_TOKEN }}  # 需要在 GitHub Secrets 中設定
         
-    - name: Upload Test Results
+    - name: Upload Test Results (Always)
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: test-results
+        name: test-results-${{ github.run_number }}
         path: |
-          TestResults/**/*.trx
+          TestResults/
           coverage.cobertura.xml
           coverage-report/
+        retention-days: 30
+        
+    - name: Publish Test Results
+      uses: dorny/test-reporter@v1
+      if: always()
+      with:
+        name: .NET Tests
+        path: TestResults/*.trx
+        reporter: dotnet-trx
+        fail-on-error: false
           
     - name: Comment Coverage on PR
       if: github.event_name == 'pull_request' && always() && steps.coverage.outputs.COVERAGE_PERCENTAGE
@@ -123,3 +135,16 @@ jobs:
             repo: context.repo.repo,
             body: body
           });
+          
+    - name: Coverage Badge Info
+      if: always() && steps.coverage.outputs.COVERAGE_PERCENTAGE
+      run: |
+        $coverage = "${{ steps.coverage.outputs.COVERAGE_PERCENTAGE }}"
+        $color = if ([float]$coverage -ge 80) { "green" } elseif ([float]$coverage -ge 60) { "yellow" } else { "red" }
+        
+        # 創建徽章 URL (使用 shields.io - 不需要 Gist)
+        $badgeUrl = "https://img.shields.io/badge/Coverage-${coverage}%25-${color}"
+        Write-Host "🏆 Coverage Badge URL: $badgeUrl"
+        Write-Host "📝 您可以在 README.md 中使用這個 URL 來顯示動態覆蓋率"
+        Write-Host "💡 或者使用 Codecov 的官方徽章：https://codecov.io/gh/fs-tw/Further.LiveKit/branch/Further.Strapi/graph/badge.svg"
+      shell: pwsh

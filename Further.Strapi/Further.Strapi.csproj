@@ -8,10 +8,6 @@
     <RootNamespace></RootNamespace>
     <IsPackable>true</IsPackable>
   </PropertyGroup>
-
-  <ItemGroup>
-    <None Include="..\readme.md" Pack="true" PackagePath="\" />
-  </ItemGroup>
     
   <ItemGroup>
     <PackageReference Include="Volo.Abp.AutoMapper" Version="9.3.5" />

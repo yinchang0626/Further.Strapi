@@ -1,8 +1,13 @@
 # Further.Strapi
 
-[![.NET](https://img.shields.io/badge/.NET-9.0-blue.svg)](https://dotnet.microsoft.com/)
-[![ABP Framework](https://img.shields.io/badge/ABP%20Framework-9.3.5-green.svg)](https://abp.io/)
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/yinchang0626/Further.Strapi/ci.yml?branch=main&label=build&logo=github)](https://github.com/yinchang0626/Further.Strapi/actions)
+[![CodeCov](https://img.shields.io/codecov/c/github/yinchang0626/Further.Strapi?logo=codecov)](https://codecov.io/gh/yinchang0626/Further.Strapi)
+[![NuGet](https://img.shields.io/nuget/v/Further.Strapi?logo=nuget&color=blue)](https://www.nuget.org/packages/Further.Strapi/)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/Further.Strapi?logo=nuget&label=downloads)](https://www.nuget.org/packages/Further.Strapi/)
+[![.NET](https://img.shields.io/badge/.NET-9.0-blue.svg?logo=dotnet)](https://dotnet.microsoft.com/)
+[![ABP Framework](https://img.shields.io/badge/ABP%20Framework-9.3.5-green.svg?logo=data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZD0iTTEyIDJMMTMuMDkgOC4yNkwyMCA5TDEzLjA5IDE1Ljc0TDEyIDIyTDEwLjkxIDE1Ljc0TDQgOUwxMC45MSA4LjI2TDEyIDJaIiBmaWxsPSJ3aGl0ZSIvPgo8L3N2Zz4K)](https://abp.io/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg?logo=opensource)](LICENSE)
+[![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg?logo=contributor-covenant)](CODE_OF_CONDUCT.md)
 
 A comprehensive .NET integration library for [Strapi v5](https://strapi.io/) headless CMS, built on top of the [ABP Framework](https://abp.io/).
 
@@ -189,7 +194,7 @@ public class MediaService : ApplicationService
 
 1. **Start test Strapi:**
    ```bash
-   cd etc/eco-trace-strapi
+   cd etc/strapi-integration-test
    npm install
    npm run develop
    ```
@@ -238,31 +243,44 @@ var articles = await _articleProvider.GetListAsync(
 ### Polymorphic Component Handling
 
 ```csharp
-public class RichTextComponent
+[StrapiComponentName("shared.rich-text")]
+public class RichTextComponent : IStrapiComponent
 {
-    public string __component => "shared.rich-text";
-    public string Body { get; set; }
+    public string Body { get; set; } = string.Empty;
+    // __component is automatically handled by the polymorphic system
 }
 
-public class MediaComponent  
+[StrapiComponentName("shared.media")]
+public class MediaComponent : IStrapiComponent
 {
-    public string __component => "shared.media";
     public StrapiFile File { get; set; }
+    // __component is automatically handled by the polymorphic system
 }
 
-// Components are automatically serialized/deserialized
-// based on the __component field
-var article = await _articleProvider.GetAsync(documentId);
+// Components are automatically handled based on polymorphic serialization
+var article = await _articleProvider.GetAsync(documentId, 
+    populate: p => p.Include("dynamicZone"));
 
 foreach (var component in article.DynamicZone)
 {
+    // Polymorphic deserialization is handled automatically
+    // Type checking can be done using pattern matching
     switch (component)
     {
         case RichTextComponent richText:
-            Console.WriteLine($"Rich Text: {richText.Body}");
+            Console.WriteLine($"Rich text: {richText.Body}");
             break;
         case MediaComponent media:
-            Console.WriteLine($"Media: {media.File.Name}");
+            Console.WriteLine($"Media file: {media.File.Url}");
+            break;
+    }
+        case nameof(RichTextComponent):
+            var richText = component as RichTextComponent;
+            Console.WriteLine($"Rich Text: {richText?.Body}");
+            break;
+        case nameof(MediaComponent):
+            var media = component as MediaComponent;
+            Console.WriteLine($"Media: {media?.File?.Name}");
             break;
     }
 }
@@ -330,7 +348,7 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 2. **Start test Strapi:**
    ```bash
-   cd etc/eco-trace-strapi
+   cd etc/strapi-integration-test
    npm install && npm run develop
    ```
 

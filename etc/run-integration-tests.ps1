@@ -172,6 +172,7 @@ DATABASE_FILENAME=.tmp/data.db
             --collect:"XPlat Code Coverage" `
             --results-directory:"TestResults" `
             --logger:"trx;LogFileName=test-results.trx" `
+            --logger:"html;LogFileName=test-results.html" `
             -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=cobertura
         
         # 移動覆蓋率檔案到根目錄
@@ -179,11 +180,22 @@ DATABASE_FILENAME=.tmp/data.db
         if ($coverageFiles.Count -gt 0) {
             Copy-Item $coverageFiles[0].FullName -Destination "coverage.cobertura.xml"
             Write-Host "✅ 覆蓋率報告已生成: coverage.cobertura.xml" -ForegroundColor Green
+            
+            # 顯示覆蓋率檔案路徑
+            Write-Host "📁 測試結果檔案位置:" -ForegroundColor Cyan
+            Write-Host "   - TestResults/" -ForegroundColor Gray
+            Write-Host "   - coverage.cobertura.xml" -ForegroundColor Gray
+        } else {
+            Write-Host "⚠️ 未找到覆蓋率檔案" -ForegroundColor Yellow
         }
     } else {
         dotnet test --no-build --configuration Release --verbosity normal `
             --logger:"trx;LogFileName=test-results.trx" `
+            --logger:"html;LogFileName=test-results.html" `
             --results-directory:"TestResults"
+        
+        Write-Host "📁 測試結果檔案位置:" -ForegroundColor Cyan
+        Write-Host "   - TestResults/" -ForegroundColor Gray
     }
     
     $testExitCode = $LASTEXITCODE

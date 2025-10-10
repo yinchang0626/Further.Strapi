@@ -75,12 +75,6 @@ jobs:
           $linePercent = [math]::Round([double]$lineRate * 100, 2)
           $branchPercent = [math]::Round([double]$branchRate * 100, 2)
           
-          $baseline = 68.79
-          $improvement = $linePercent - $baseline
-          $improvementText = if ($improvement -gt 0) { "⬆️ +$($improvement.ToString('F2'))% 提升" } 
-                            elseif ($improvement -lt 0) { "⬇️ $($improvement.ToString('F2'))% 下降" } 
-                            else { "➡️ 持平" }
-          
           $summary = @"
         ## 📊 覆蓋率報告
         
@@ -88,8 +82,6 @@ jobs:
         |------|------|------|
         | **行覆蓋率** | **$linePercent%** | $linesCovered/$linesValid 行 |
         | **分支覆蓋率** | **$branchPercent%** | $branchesCovered/$branchesValid 分支 |
-        
-        📊 **覆蓋率變化**: $improvementText (基準: $baseline%)
         
         🎯 **測試品質**: 全面覆蓋核心功能和邊界條件
         "@

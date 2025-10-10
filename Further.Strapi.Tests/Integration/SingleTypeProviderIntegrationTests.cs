@@ -12,7 +12,7 @@ namespace Further.Strapi.Tests.Integration;
 /// <summary>
 /// SingleTypeProvider 整合測試 - 測試真實的 Strapi API
 /// </summary>
-public class SingleTypeProviderIntegrationTests : StrapiIntegrationTestBase
+public class SingleTypeProviderIntegrationTests : StrapiRealIntegrationTestBase
 {
     private readonly ISingleTypeProvider<Global> _globalProvider;
     private readonly ISingleTypeProvider<About> _aboutProvider;

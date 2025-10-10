@@ -11,7 +11,7 @@ namespace Further.Strapi.Tests.Integration;
 /// <summary>
 /// Article Collection Type 基本 CRUD 測試
 /// </summary>
-public class ArticleCrudTests : StrapiIntegrationTestBase
+public class ArticleCrudTests : StrapiRealIntegrationTestBase
 {
     private readonly ICollectionTypeProvider<Article> _articleProvider;
     private readonly ITestOutputHelper _output;

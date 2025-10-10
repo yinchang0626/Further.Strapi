@@ -1,0 +1,151 @@
+name: "⚡ CD (Continuous Deployment)"
+
+on:
+  push:
+    branches:
+      - main                # 只管 main，其他不關我事
+    paths:
+      - 'common.props'      # 版本變了就發布，簡單
+  workflow_dispatch:        # 想發就發
+
+jobs:
+  rapid-publish:
+    name: "⚡ Speed Demon Release"
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: "📥 Grab the code"
+      uses: actions/checkout@v4
+      
+    - name: "⚙️ Setup .NET"
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+
+    - name: "🔍 Detect version"
+      id: getVersion
+      run: |
+        VERSION=$(grep -oP '(?<=<Version>)[^<]+' common.props)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "🎯 Target version: $VERSION"
+
+    - name: "🔍 Check if already shipped"
+      uses: mukunku/tag-exists-action@v1.2.0
+      id: checkTag
+      with:
+        tag: v${{ steps.getVersion.outputs.version }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: "🚫 Skip if duplicate"
+      if: steps.checkTag.outputs.exists == 'true'
+      run: |
+        echo "⚠️ Version v${{ steps.getVersion.outputs.version }} already published. Nothing to do."
+        exit 0
+
+    - name: "🔧 Restore packages"
+      if: steps.checkTag.outputs.exists == 'false'
+      run: dotnet restore
+
+    - name: "🏗️ Build release"
+      if: steps.checkTag.outputs.exists == 'false'
+      run: dotnet build --no-restore --configuration Release
+
+    - name: "⚡ Lightning-fast validation"
+      if: steps.checkTag.outputs.exists == 'false'
+      run: |
+        echo "⚡ Running minimal validation (publish mode)..."
+        echo "💭 Full testing already done by someone else, I just verify basics"
+        dotnet test --no-build --configuration Release --verbosity minimal --filter "Category!=StrapiRealIntegration"
+        echo "✅ Validation passed! Ready for launch!"
+
+    - name: "📦 Package for shipping"
+      if: steps.checkTag.outputs.exists == 'false'
+      run: dotnet pack --no-build --configuration Release --output ./shipping/
+
+    - name: "🧹 Clean up non-essential packages"
+      if: steps.checkTag.outputs.exists == 'false'
+      run: |
+        cd ./shipping
+        # Remove junk packages
+        rm -f *.Tests.* *.TestBase.* *.Host.* *.HttpApi.Host.* *.Web.* *.Blazor.* *.ConsoleTestApp.*
+        echo "📦 Packages ready for shipping:"
+        ls -la *.nupkg
+
+    - name: "🚀 Launch to NuGet.org"
+      if: steps.checkTag.outputs.exists == 'false'
+      run: |
+        for package in ./shipping/*.nupkg; do
+          echo "� Launching $package to NuGet.org..."
+          dotnet nuget push "$package" \
+            --source "https://api.nuget.org/v3/index.json" \
+            --api-key ${{ secrets.NUGET_API_KEY }} \
+            --skip-duplicate
+        done
+
+    - name: "📡 Deploy to GitHub Packages"
+      if: steps.checkTag.outputs.exists == 'false'
+      run: |
+        for package in ./shipping/*.nupkg; do
+          echo "� Deploying $package to GitHub Packages..."
+          dotnet nuget push "$package" \
+            --source "https://nuget.pkg.github.com/yinchang0626/index.json" \
+            --api-key ${{ secrets.GITHUB_TOKEN }} \
+            --skip-duplicate
+        done
+
+    - name: "🏷️ Create version tag"
+      if: steps.checkTag.outputs.exists == 'false'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.git.createRef({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            ref: 'refs/tags/v${{ steps.getVersion.outputs.version }}',
+            sha: context.sha
+          })
+
+    - name: "🎉 Create release announcement"
+      if: steps.checkTag.outputs.exists == 'false'
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: v${{ steps.getVersion.outputs.version }}
+        name: "🚀 Further.Strapi v${{ steps.getVersion.outputs.version }}"
+        body: |
+          ## ⚡ Further.Strapi v${{ steps.getVersion.outputs.version }}
+          
+          **Lightning-fast release deployed!** 🚀
+          
+          ### � Installation
+          ```bash
+          dotnet add package Further.Strapi
+          ```
+          
+          ### ⚡ Release Speed
+          - ✅ Rapid validation: Passed
+          - ✅ Package creation: Completed
+          - ✅ Multi-platform deployment: Done
+          
+          ### 📊 Quality Metrics
+          - Testing coverage: See [Codecov](https://codecov.io/gh/yinchang0626/Further.Strapi)
+          - Integration tests: Handled by PR workflow
+          
+          ### � Resources
+          - [Documentation](https://github.com/yinchang0626/Further.Strapi)
+          - [API Examples](https://github.com/yinchang0626/Further.Strapi#quick-start)
+          - [Changelog](https://github.com/yinchang0626/Further.Strapi/blob/main/CHANGELOG.md)
+          
+          ---
+          *Released by the Lightning Publish system* ⚡
+        files: ./shipping/*.nupkg
+        draft: false
+        prerelease: false
+
+    - name: "💾 Archive release artifacts"
+      if: steps.checkTag.outputs.exists == 'false'
+      uses: actions/upload-artifact@v4
+      with:
+        name: "lightning-release-v${{ steps.getVersion.outputs.version }}"
+        path: ./shipping/*.nupkg
+        retention-days: 30

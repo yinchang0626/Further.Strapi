@@ -13,7 +13,7 @@ namespace Further.Strapi.Tests.Integration;
 /// Media Library Provider 整合測試
 /// 測試檔案上傳、取得、更新和刪除功能
 /// </summary>
-public class MediaLibraryProviderTests : StrapiIntegrationTestBase
+public class MediaLibraryProviderTests : StrapiRealIntegrationTestBase
 {
     private readonly IMediaLibraryProvider _mediaLibraryProvider;
     private readonly ITestOutputHelper _output;

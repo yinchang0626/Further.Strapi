@@ -11,7 +11,7 @@ namespace Further.Strapi.Tests.Integration;
 /// <summary>
 /// CollectionTypeProvider 整合測試 - 測試真實的 Strapi API
 /// </summary>
-public class CollectionTypeProviderIntegrationTests : StrapiIntegrationTestBase
+public class CollectionTypeProviderIntegrationTests : StrapiRealIntegrationTestBase
 {
     private readonly ICollectionTypeProvider<Article> _articleProvider;
     private readonly ICollectionTypeProvider<Author> _authorProvider;

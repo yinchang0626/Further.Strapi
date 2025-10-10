@@ -27,29 +27,31 @@ We use GitHub to host code, to track issues and feature requests, as well as acc
 
 - .NET 9.0 SDK
 - Visual Studio 2022 or VS Code
-- Strapi v5 instance for testing (can be local)
+- Node.js (for test Strapi instance)
 
-### Setup Steps
+### Quick Setup
 
-1. **Clone the repository**
+For a quick start, see the [Development Setup](README.md#quick-development-setup) section in the main README.
+
+### Detailed Setup Steps
+
+1. **Clone and build:**
    ```bash
    git clone https://github.com/your-org/Further.Strapi.git
    cd Further.Strapi
+   dotnet restore && dotnet build
    ```
 
-2. **Restore dependencies**
+2. **Start test Strapi instance:**
    ```bash
-   dotnet restore
+   cd etc/eco-trace-strapi
+   npm install
+   npm run develop
    ```
 
-3. **Build the solution**
-   ```bash
-   dotnet build
-   ```
-
-4. **Set up test configuration**
+3. **Configure test environment:**
    
-   Create `appsettings.test.json` in the test project:
+   Create `appsettings.test.json` in `Further.Strapi.Tests/`:
    ```json
    {
      "StrapiOptions": {
@@ -59,9 +61,13 @@ We use GitHub to host code, to track issues and feature requests, as well as acc
    }
    ```
 
-5. **Run tests**
+4. **Verify setup:**
    ```bash
-   dotnet test
+   # Run unit tests (fast)
+   dotnet test --filter "Category!=StrapiRealIntegration"
+   
+   # Run integration tests (requires Strapi running)
+   dotnet test --filter "Category=StrapiRealIntegration"
    ```
 
 ## Coding Standards

@@ -10,9 +10,9 @@ using Xunit.Abstractions;
 namespace Further.Strapi.Tests.Services;
 
 /// <summary>
-/// ArticleService 測試類別
+/// ArticleService 測試類別 - 需要真實 Strapi 服務運行
 /// </summary>
-public class ArticleServiceTests : StrapiIntegrationTestBase
+public class ArticleServiceTests : StrapiRealIntegrationTestBase
 {
     private readonly ArticleService _articleService;
     private readonly ITestOutputHelper _output;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Net;
 using System.Net.Http;
@@ -13,11 +13,11 @@ using Xunit;
 namespace Further.Strapi.Tests;
 
 /// <summary>
-/// ABP 整合測試基底類別
-/// 這些測試使用 ABP 框架但不需要外部 Strapi 服務，會被當作單元測試執行
-/// 如果需要真實 Strapi 服務的測試，請繼承 StrapiRealIntegrationTestBase
+/// Strapi 整合測試基底類別
+/// 這些測試需要真實 Strapi 服務運行，會被 CI/CD 的單元測試排除
 /// </summary>
-public abstract class StrapiIntegrationTestBase : AbpWebApplicationFactoryIntegratedTest<TestProgram>
+[Trait("Category", "StrapiRealIntegration")]
+public abstract class StrapiRealIntegrationTestBase : AbpWebApplicationFactoryIntegratedTest<TestProgram>
 {
     protected virtual async Task<T> GetResponseAsObjectAsync<T>(
         string url,

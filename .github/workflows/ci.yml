@@ -1,36 +1,101 @@
-name: CI
+name: "🧪 Quality Gate (CI)"
 
 on:
-  push:
-    branches: [ main, develop ]
-    paths-ignore:
-      - 'common.props'  # 版本變更由 publish workflow 處理
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]      # 只管 PR，不管別的
+  workflow_dispatch:        # 手動觸發
 
 jobs:
-  test:
+  complete-testing:
+    name: "🔬 Complete Testing Pipeline"
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
+    - name: "📥 Get the code"
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.pull_request.head.sha || github.sha }}
     
-    - name: Setup .NET
+    - name: "⚙️ Setup .NET"
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '9.0.x'
         
-    - name: Restore dependencies
+    - name: "🔧 Restore dependencies"
       run: dotnet restore
       
-    - name: Build
+    - name: "🏗️ Build"
       run: dotnet build --no-restore --configuration Release
+
+    # 日本人 SOP：完整準備 Strapi 環境，慢慢來不要急
+    - name: "🟢 Setup Node.js"
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: etc/strapi-integration-test/package-lock.json
+        
+    - name: "📦 Install Strapi dependencies"
+      working-directory: etc/strapi-integration-test
+      run: npm ci
       
-    - name: Test
-      run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage"
+    - name: "🚀 Launch Strapi Environment"
+      working-directory: etc/strapi-integration-test
+      run: |
+        echo "🌐 Creating pristine Strapi test environment..."
+        echo "⏰ Japanese SOP: We wait as long as it takes for Strapi to be ready!"
+        cat > .env << EOF
+        HOST=0.0.0.0
+        PORT=1337
+        APP_KEYS=$(openssl rand -base64 32),$(openssl rand -base64 32)
+        API_TOKEN_SALT=$(openssl rand -base64 32)
+        ADMIN_JWT_SECRET=$(openssl rand -base64 32)
+        TRANSFER_TOKEN_SALT=$(openssl rand -base64 32)
+        JWT_SECRET=$(openssl rand -base64 32)
+        DATABASE_CLIENT=sqlite
+        DATABASE_FILENAME=.tmp/data.db
+        EOF
+        
+        npm run build
+        npm run start &
+        
+        echo "⏳ Waiting patiently for Strapi to be fully operational..."
+        timeout 300 bash -c 'until curl -f http://localhost:1337/admin; do echo "⏰ Still waiting..."; sleep 5; done'
+        echo "✅ Strapi environment ready! Perfect!"
+        
+    - name: "🔑 Setup Strapi admin and API token (Node.js)"
+      working-directory: etc/strapi-integration-test
+      run: |
+        echo "🚀 Running Node.js CI setup script..."
+        npm run setup-ci
+        echo "✅ Strapi CI setup completed!"
       
-    - name: Upload coverage reports to Codecov
+    - name: "🧪 Execute Complete Test Suite"
+      run: |
+        echo "🔬 Running ALL tests - no classification needed, just thorough testing!"
+        echo "🌐 This includes ABP tests, Strapi integration tests, everything!"
+        dotnet test --no-build --configuration Release --verbosity detailed
+        echo "✅ All tests completed - comprehensive validation done!"
+      env:
+        ASPNETCORE_ENVIRONMENT: Test
+
+    # 完整覆蓋率分析
+    - name: "📊 Generate Complete Test Coverage Report"
+      run: |
+        echo "📈 Running complete test suite with coverage analysis..."
+        dotnet test --configuration Release --verbosity minimal \
+          --collect:"XPlat Code Coverage" \
+          --results-directory ./final-coverage \
+          --logger "console;verbosity=minimal"
+        echo "✅ Complete coverage report generated!"
+      env:
+        ASPNETCORE_ENVIRONMENT: Test
+
+    - name: "🚀 Upload Final Coverage to Codecov"
       uses: codecov/codecov-action@v4
       with:
         token: ${{ secrets.CODECOV_TOKEN }}
-        fail_ci_if_error: false  # 不因為 Codecov 失敗而失敗 CI
+        directory: ./final-coverage
+        flags: complete
+        name: "Complete Test Coverage"
+        fail_ci_if_error: false

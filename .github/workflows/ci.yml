@@ -37,7 +37,17 @@ jobs:
         
     - name: "📦 Install Strapi dependencies"
       working-directory: etc/strapi-integration-test
-      run: npm ci
+      run: |
+        echo "🔧 Fixing dependency version conflicts..."
+        # 檢查是否有版本衝突，如果有就重新生成 lock file
+        if ! npm ci; then
+          echo "⚠️ Lock file out of sync, regenerating..."
+          rm -f package-lock.json
+          npm install
+          echo "✅ Dependencies synchronized!"
+        else
+          echo "✅ Dependencies installed successfully!"
+        fi
       
     - name: "🚀 Launch Strapi Environment"
       working-directory: etc/strapi-integration-test

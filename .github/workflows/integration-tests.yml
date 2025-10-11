@@ -54,7 +54,6 @@ jobs:
       uses: codecov/codecov-action@v4
       with:
         file: ./coverage.cobertura.xml
-        codecov_yml_path: ./codecov.yml
         flags: integration
         name: codecov-integration-tests
         fail_ci_if_error: false

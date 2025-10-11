@@ -3,19 +3,19 @@
   <Import Project="..\common.props" />
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
     <Nullable>enable</Nullable>
     <RootNamespace></RootNamespace>
     <IsPackable>true</IsPackable>
   </PropertyGroup>
     
   <ItemGroup>
-    <PackageReference Include="Volo.Abp.AutoMapper" Version="9.3.5" />
-    <PackageReference Include="Volo.Abp.Ddd.Application" Version="9.3.5" />
-    <PackageReference Include="Volo.Abp.AspNetCore.Mvc" Version="9.3.5" />
+    <PackageReference Include="Volo.Abp.AutoMapper" Version="$(AbpVersion)" />
+    <PackageReference Include="Volo.Abp.Ddd.Application" Version="$(AbpVersion)" />
+    <PackageReference Include="Volo.Abp.AspNetCore.Mvc" Version="$(AbpVersion)" />
 
     <ProjectReference Include="..\Further.Strapi.Contracts\Further.Strapi.Contracts.csproj" />
-    <PackageReference Include="Volo.Abp.EntityFrameworkCore" Version="9.3.5" />
+    <PackageReference Include="Volo.Abp.EntityFrameworkCore" Version="$(AbpVersion)" />
   </ItemGroup>
 
 </Project>

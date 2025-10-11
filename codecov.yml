@@ -5,16 +5,21 @@ coverage:
 
 parsers:
   cobertura:
-    partials_as_hits: true  # 將部分覆蓋計算為完全覆蓋
-    handle_missing_conditions: true  # 處理缺失的條件
+    partials_as_hits: true  # Treat partial coverage as hits
+    handle_missing_conditions: true  # Handle missing conditions
 
-# 可選：設定通知和狀態檢查
+# Comment settings for PR notifications
 comment:
-  layout: "diff, flags, files"
+  layout: "reach, diff, flags, files"
   behavior: default
   require_changes: false
+  require_base: false
+  require_head: true
+  branches:
+    - main
+    - develop
 
-# 可選：忽略特定路徑
+# Ignore specific paths
 ignore:
   - "**/bin/**"
   - "**/obj/**"

@@ -1,10 +1,9 @@
 # Further.Strapi
 
 [![Integration Tests](https://github.com/yinchang0626/Further.Strapi/actions/workflows/integration-tests.yml/badge.svg)](https://github.com/yinchang0626/Further.Strapi/actions/workflows/integration-tests.yml)
-[![Tests](https://img.shields.io/badge/tests-71%20passed-brightgreen?logo=github)](https://github.com/yinchang0626/Further.Strapi/actions)
 [![codecov](https://codecov.io/gh/yinchang0626/Further.Strapi/branch/main/graph/badge.svg)](https://codecov.io/gh/yinchang0626/Further.Strapi)
-[![.NET](https://img.shields.io/badge/.NET-9.0-blue.svg?logo=dotnet)](https://dotnet.microsoft.com/)
-[![ABP Framework](https://img.shields.io/badge/ABP%20Framework-9.3.5-green.svg)](https://abp.io/)
+[![.NET](https://img.shields.io/badge/.NET-8.0%20%7C%209.0-blue.svg?logo=dotnet)](https://dotnet.microsoft.com/)
+[![ABP Framework](https://img.shields.io/badge/ABP%20Framework-8.3.0%20%7C%209.3.5-green.svg)](https://abp.io/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?logo=opensource)](LICENSE)
 
 [![Coverage Tree](https://codecov.io/gh/yinchang0626/Further.Strapi/branch/main/graphs/tree.svg)](https://codecov.io/gh/yinchang0626/Further.Strapi)

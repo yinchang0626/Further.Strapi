@@ -1,13 +1,16 @@
 <Project>
   <!-- Centralized version settings for Further.Strapi module -->
   <PropertyGroup>
-    <Version>0.0.3</Version>
+    <Version>0.0.5</Version>
     <!-- Set ABP package version based on target framework -->
     <AbpVersion Condition=" '$(TargetFramework)'=='net8.0' ">8.3.0</AbpVersion>
     <AbpVersion Condition=" '$(TargetFramework)'=='net9.0' ">9.3.5</AbpVersion>
 
     <!-- Version for Microsoft.Extensions.FileProviders.Embedded -->
-    <MsExtEmbeddedVersion Condition=" '$(TargetFramework)'=='net8.0' ">8.0.4</MsExtEmbeddedVersion>
-    <MsExtEmbeddedVersion Condition=" '$(TargetFramework)'=='net9.0' ">9.0.5</MsExtEmbeddedVersion>
+    <MsExtFileProvidersVersion Condition=" '$(TargetFramework)'=='net8.0' ">8.0.4</MsExtFileProvidersVersion>
+    <MsExtFileProvidersVersion Condition=" '$(TargetFramework)'=='net9.0' ">9.0.5</MsExtFileProvidersVersion>
+
+    <MsExtHttpVersion Condition=" '$(TargetFramework)'=='net8.0' ">8.0.1</MsExtHttpVersion>
+    <MsExtHttpVersion Condition=" '$(TargetFramework)'=='net9.0' ">9.0.5</MsExtHttpVersion>
   </PropertyGroup>
 </Project>

@@ -44,7 +44,7 @@ public class StrapiModule : AbpModule
              * options.AddRepository<Question, EfCoreQuestionRepository>();
              */
         });
-        
+        context.Services.AddStrapi();
         // 註冊 Provider 服務
         context.Services.AddTransient(typeof(ICollectionTypeProvider<>), typeof(CollectionTypeProvider<>));
         context.Services.AddTransient(typeof(ISingleTypeProvider<>), typeof(SingleTypeProvider<>));

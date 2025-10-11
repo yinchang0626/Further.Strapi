@@ -41,7 +41,6 @@ public class StrapiTestsModule : AbpModule
         ConfigureAuthorization(context);
         ConfigureDatabase(context);
         ConfigureDatabaseTransactions(context);
-        ConfigureStrapiForTesting(context);
     }
 
     public override void OnApplicationInitialization(ApplicationInitializationContext context)
@@ -110,15 +109,5 @@ public class StrapiTestsModule : AbpModule
         ).GetService<IRelationalDatabaseCreator>().CreateTables();
 
         return connection;
-    }
-    
-    private static void ConfigureStrapiForTesting(ServiceConfigurationContext context)
-    {
-        // 從 appsettings.Test.json 綁定 StrapiOptions
-        var configuration = context.Services.GetConfiguration();
-        context.Services.Configure<StrapiOptions>(configuration.GetSection("Strapi"));
-        
-        // 註冊 Strapi 服務
-        context.Services.AddStrapi();
     }
 }

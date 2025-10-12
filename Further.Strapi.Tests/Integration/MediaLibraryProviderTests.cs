@@ -333,7 +333,7 @@ public class MediaLibraryProviderTests : StrapiRealIntegrationTestBase
     }
 
     [Fact]
-    public async Task UploadEntryFileAsync_WithArticleRelation_ShouldWork()
+    public async Task UploadFile_ThenManuallyUpdateEntity_ShouldWork()
     {
         // Arrange - 先建立一篇文章用於關聯
         var articleProvider = GetRequiredService<ICollectionTypeProvider<Article>>();
@@ -341,9 +341,9 @@ public class MediaLibraryProviderTests : StrapiRealIntegrationTestBase
         
         var testArticle = new Article
         {
-            Title = $"測試關聯文件的文章-{timestamp}",
-            Description = "用於測試媒體文件關聯功能的文章",
-            Slug = $"test-media-relation-{timestamp}"
+            Title = $"測試兩步驟檔案關聯的文章-{timestamp}",
+            Description = "用於測試分離式檔案上傳和關聯功能的文章",
+            Slug = $"test-two-step-relation-{timestamp}"
         };
 
         var articleDocumentId = await articleProvider.CreateAsync(testArticle);
@@ -353,8 +353,8 @@ public class MediaLibraryProviderTests : StrapiRealIntegrationTestBase
 
         try
         {
-            // Arrange - 準備上傳文件
-            var fileName = $"test-entry-{timestamp}.jpg";
+            // Step 1: 上傳檔案（不關聯到任何實體）
+            var fileName = $"test-two-step-{timestamp}.jpg";
             
             // 創建一個簡單的測試圖片數據 (最小有效的 JPEG)
             var imageBytes = new byte[] { 
@@ -371,69 +371,79 @@ public class MediaLibraryProviderTests : StrapiRealIntegrationTestBase
                 0x11, 0x03, 0x11, 0x00, 0x3F, 0x00, 0xB2, 0xC0, 0x07, 0xFF, 0xD9
             };
             
-            var entryUploadRequest = new EntryFileUploadRequest
+            var uploadRequest = new FileUploadRequest
             {
                 FileStream = new MemoryStream(imageBytes),
                 FileName = fileName,
                 ContentType = "image/jpeg",
                 AlternativeText = "測試文章封面圖片",
-                Caption = "關聯到文章的測試圖片",
-                RefId = articleDocumentId, // 使用真實的 Article DocumentId
-                Ref = "api::article.article",
-                Field = "cover"
+                Caption = "分兩步驟關聯到文章的測試圖片"
             };
 
-            // Act
-            _output.WriteLine($"開始上傳關聯文件到文章 {articleDocumentId}: {fileName}");
-            uploadedFile = await _mediaLibraryProvider.UploadEntryFileAsync(entryUploadRequest);
+            _output.WriteLine($"開始上傳檔案: {fileName}");
+            uploadedFile = await _mediaLibraryProvider.UploadAsync(uploadRequest);
 
-            // Assert
+            // Assert Step 1
             uploadedFile.ShouldNotBeNull();
             uploadedFile.Id.ShouldBeGreaterThan(0);
-            uploadedFile.Name.ShouldContain("test-entry");
+            uploadedFile.Name.ShouldContain("test-two-step");
             uploadedFile.Mime.ShouldBe("image/jpeg");
-            uploadedFile.AlternativeText.ShouldBe("測試文章封面圖片");
-            uploadedFile.Caption.ShouldBe("關聯到文章的測試圖片");
 
-            _output.WriteLine($"✅ 關聯文件上傳成功:");
+            _output.WriteLine($"✅ 檔案上傳成功:");
             _output.WriteLine($"   ID: {uploadedFile.Id}");
             _output.WriteLine($"   DocumentId: {uploadedFile.DocumentId}");
             _output.WriteLine($"   Name: {uploadedFile.Name}");
             _output.WriteLine($"   MimeType: {uploadedFile.Mime}");
             _output.WriteLine($"   URL: {uploadedFile.Url}");
+            _output.WriteLine($"   AlternativeText: '{uploadedFile.AlternativeText}'");
+            _output.WriteLine($"   Caption: '{uploadedFile.Caption}'");
 
-            // 驗證文章是否有關聯到這個文件
+            // Step 2: 手動更新文章關聯檔案
+            _output.WriteLine($"開始更新文章關聯檔案 ID: {uploadedFile.Id}");
+            
+            // ⚠️ 重要：必須先從 Strapi 讀取完整資料，再修改特定欄位，避免覆蓋其他欄位
+            var existingArticle = await articleProvider.GetAsync(articleDocumentId);
+            existingArticle.ShouldNotBeNull();
+            
+            // 修改 Cover 欄位，序列化時會自動將 StrapiMediaField 轉換成 ID
+            existingArticle.Cover = uploadedFile;
+
+            var updateResult = await articleProvider.UpdateAsync(articleDocumentId, existingArticle);
+            updateResult.ShouldBe(articleDocumentId);
+            
+            // 重新取得更新後的文章資料
             var updatedArticle = await articleProvider.GetAsync(articleDocumentId);
-            if (updatedArticle?.Cover != null)
-            {
-                _output.WriteLine($"✅ 文章成功關聯到文件:");
-                _output.WriteLine($"   Cover ID: {updatedArticle.Cover.Id}");
-                _output.WriteLine($"   Cover Name: {updatedArticle.Cover.Name}");
-            }
-            else
-            {
-                _output.WriteLine($"⚠️ 文章的 Cover 欄位為空，可能需要手動設定關聯");
-            }
+
+            // Assert Step 2
+            updatedArticle.ShouldNotBeNull();
+            updatedArticle.Cover.ShouldNotBeNull();
+            updatedArticle.Cover.Id.ShouldBe(uploadedFile.Id);
+
+            _output.WriteLine($"✅ 文章成功關聯到檔案:");
+            _output.WriteLine($"   Cover ID: {updatedArticle.Cover.Id}");
+            _output.WriteLine($"   Cover Name: {updatedArticle.Cover.Name}");
+            _output.WriteLine($"   Uploaded File ID: {uploadedFile.Id}");
+            _output.WriteLine($"✅ 確認兩步驟檔案關聯正確完成");
         }
         catch (Exception ex)
         {
-            _output.WriteLine($"❌ 關聯文件上傳失敗: {ex.GetType().Name}: {ex.Message}");
+            _output.WriteLine($"❌ 兩步驟檔案關聯失敗: {ex.GetType().Name}: {ex.Message}");
             _output.WriteLine($"   StackTrace: {ex.StackTrace}");
             throw;
         }
         finally
         {
-            // Cleanup - 清理上傳的文件
+            // Cleanup - 清理上傳的檔案
             if (uploadedFile != null)
             {
                 try
                 {
                     await _mediaLibraryProvider.DeleteAsync(uploadedFile.Id);
-                    _output.WriteLine($"🗑️ 已清理測試文件: {uploadedFile.Id}");
+                    _output.WriteLine($"🗑️ 已清理測試檔案: {uploadedFile.Id}");
                 }
                 catch (Exception cleanupEx)
                 {
-                    _output.WriteLine($"⚠️ 文件清理失敗: {cleanupEx.Message}");
+                    _output.WriteLine($"⚠️ 檔案清理失敗: {cleanupEx.Message}");
                 }
             }
 

@@ -1,6 +1,7 @@
 using Further.Strapi.Serialization;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using System.Text.Json.Serialization.Metadata;
 using Volo.Abp.Json.SystemTextJson;
 using Volo.Abp.Modularity;
 using Volo.Abp.Reflection;
@@ -32,16 +33,18 @@ public class StrapiSharedModule : AbpModule
 /// </summary>
 public class StrapiJsonSerializerOptionsPostConfigureOptions : IPostConfigureOptions<AbpSystemTextJsonSerializerOptions>
 {
-    private readonly StrapiPolymorphicTypeResolver _typeResolver;
+    private readonly StrapiPolymorphicTypeResolver _polymorphicTypeResolver;
 
-    public StrapiJsonSerializerOptionsPostConfigureOptions(StrapiPolymorphicTypeResolver typeResolver)
+    public StrapiJsonSerializerOptionsPostConfigureOptions(
+        StrapiPolymorphicTypeResolver polymorphicTypeResolver)
     {
-        _typeResolver = typeResolver;
+        _polymorphicTypeResolver = polymorphicTypeResolver;
     }
 
     public void PostConfigure(string? name, AbpSystemTextJsonSerializerOptions options)
     {
-        // 設定 TypeInfoResolver 用於組件多型序列化
-        options.JsonSerializerOptions.TypeInfoResolver = _typeResolver;
+        // 只配置多型序列化解析器
+        // 所有 JsonConverter 都採用手動標註方式，保持設計一致性
+        options.JsonSerializerOptions.TypeInfoResolver = _polymorphicTypeResolver;
     }
 }

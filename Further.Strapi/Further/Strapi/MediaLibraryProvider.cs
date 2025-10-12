@@ -66,17 +66,17 @@ public class MediaLibraryProvider : IMediaLibraryProvider,Volo.Abp.DependencyInj
     }
 
     /// <summary>
-    /// 上傳檔案並關聯到特定的內容項目
+    /// 批次上傳多個檔案到 Strapi Media Library
     /// </summary>
-    public async Task<StrapiMediaField> UploadEntryFileAsync(EntryFileUploadRequest entryFileUpload)
+    public async Task<List<StrapiMediaField>> UploadMultipleAsync(IEnumerable<FileUploadRequest> fileUploads)
     {
         var client = CreateHttpClient();
         
         // 建構 API 路徑
         var path = StrapiProtocol.Paths.Media();
 
-        // 使用協定工具建立 form data
-        var form = StrapiProtocol.MediaLibrary.CreateEntryFileUploadForm(entryFileUpload);
+        // 使用協定工具建立 form data (支援多檔案)
+        var form = StrapiProtocol.MediaLibrary.CreateMultipleUploadForm(fileUploads);
 
         // 建立請求
         var request = new HttpRequestMessage(HttpMethod.Post, path)
@@ -89,7 +89,7 @@ public class MediaLibraryProvider : IMediaLibraryProvider,Volo.Abp.DependencyInj
 
         if (!response.IsSuccessStatusCode)
         {
-            throw new InvalidOperationException($"無法上傳關聯檔案。狀態碼: {response.StatusCode}");
+            throw new InvalidOperationException($"無法批次上傳檔案。狀態碼: {response.StatusCode}");
         }
 
         // 反序列化回應 (Strapi Media Library 回傳的是陣列)
@@ -97,10 +97,10 @@ public class MediaLibraryProvider : IMediaLibraryProvider,Volo.Abp.DependencyInj
         
         if (uploadedFiles == null || uploadedFiles.Count == 0)
         {
-            throw new InvalidOperationException("關聯檔案上傳失敗，未收到檔案資訊。");
+            throw new InvalidOperationException("批次檔案上傳失敗，未收到檔案資訊。");
         }
 
-        return uploadedFiles[0];
+        return uploadedFiles;
     }
     public async Task<StrapiMediaField> GetAsync(int fileId)
     {

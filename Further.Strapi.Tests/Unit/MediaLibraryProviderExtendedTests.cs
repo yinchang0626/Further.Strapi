@@ -6,12 +6,14 @@ using Xunit;
 using Shouldly;
 using Volo.Abp.Json;
 using Further.Strapi.Tests;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Further.Strapi.Tests.Unit;
 
 /// <summary>
-/// MediaLibraryProvider 擴展單元測試
-/// 測試所有媒體庫功能，包括錯誤處理
+/// MediaLibraryProvider 簡化版單元測試
+/// 測試策略A的簡化媒體庫功能
 /// </summary>
 public class MediaLibraryProviderExtendedTests : StrapiIntegrationTestBase
 {
@@ -54,26 +56,78 @@ public class MediaLibraryProviderExtendedTests : StrapiIntegrationTestBase
     }
 
     [Fact]
-    public void EntryFileUploadRequest_WithRefData_ShouldBeValid()
+    public void FileUploadRequest_WithAllOptionalProperties_ShouldWork()
     {
         // Arrange & Act
-        var request = new EntryFileUploadRequest
+        var request = new FileUploadRequest
         {
-            FileStream = new MemoryStream(new byte[] { 255, 216, 255 }), // JPEG header
-            FileName = "cover.jpg",
-            ContentType = "image/jpeg",
-            Ref = "api::article.article",
-            RefId = "doc123",
-            Field = "cover"
+            FileStream = new MemoryStream(new byte[] { 137, 80, 78, 71 }), // PNG header
+            FileName = "test.png",
+            ContentType = "image/png",
+            AlternativeText = "A beautiful image",
+            Caption = "This image shows something amazing",
+            Path = "/custom/path"
         };
 
         // Assert
-        request.Ref.ShouldBe("api::article.article");
-        request.RefId.ShouldBe("doc123");
-        request.Field.ShouldBe("cover");
         request.FileStream.ShouldNotBeNull();
-        request.FileName.ShouldBe("cover.jpg");
-        request.ContentType.ShouldBe("image/jpeg");
+        request.FileName.ShouldBe("test.png");
+        request.ContentType.ShouldBe("image/png");
+        request.AlternativeText.ShouldBe("A beautiful image");
+        request.Caption.ShouldBe("This image shows something amazing");
+        request.Path.ShouldBe("/custom/path");
+    }
+
+    [Fact]
+    public void FileUploadRequest_WithEmptyStream_ShouldWork()
+    {
+        // Arrange & Act
+        var request = new FileUploadRequest
+        {
+            FileStream = new MemoryStream(new byte[0]),
+            FileName = "empty.txt",
+            ContentType = "text/plain"
+        };
+
+        // Assert
+        request.FileStream.Length.ShouldBe(0);
+        request.FileName.ShouldBe("empty.txt");
+        request.ContentType.ShouldBe("text/plain");
+    }
+
+    [Fact]
+    public void FileUploadRequestList_ForMultipleUpload_ShouldWork()
+    {
+        // Arrange & Act
+        var requests = new List<FileUploadRequest>
+        {
+            new FileUploadRequest
+            {
+                FileStream = new MemoryStream(new byte[] { 255, 216, 255 }), // JPEG header
+                FileName = "image1.jpg",
+                ContentType = "image/jpeg",
+                AlternativeText = "First image",
+                Caption = "Caption for first image"
+            },
+            new FileUploadRequest
+            {
+                FileStream = new MemoryStream(new byte[] { 137, 80, 78, 71 }), // PNG header
+                FileName = "image2.png",
+                ContentType = "image/png",
+                AlternativeText = "Second image",
+                Caption = "Caption for second image"
+            }
+        };
+
+        // Assert
+        requests.Count.ShouldBe(2);
+        requests[0].FileName.ShouldBe("image1.jpg");
+        requests[0].ContentType.ShouldBe("image/jpeg");
+        requests[1].FileName.ShouldBe("image2.png");
+        requests[1].ContentType.ShouldBe("image/png");
+        
+        // 驗證所有檔案都有內容
+        requests.All(r => r.FileStream.Length > 0).ShouldBeTrue();
     }
 
     [Fact]
@@ -91,6 +145,23 @@ public class MediaLibraryProviderExtendedTests : StrapiIntegrationTestBase
         request.Name.ShouldBe("updated-name.jpg");
         request.AlternativeText.ShouldBe("Updated alt text");
         request.Caption.ShouldBe("Updated caption");
+    }
+
+    [Fact]
+    public void FileInfoUpdateRequest_WithNullValues_ShouldWork()
+    {
+        // Arrange & Act
+        var request = new FileInfoUpdateRequest
+        {
+            Name = null,
+            AlternativeText = null,
+            Caption = null
+        };
+
+        // Assert
+        request.Name.ShouldBeNull();
+        request.AlternativeText.ShouldBeNull();
+        request.Caption.ShouldBeNull();
     }
 
     [Fact]
@@ -156,29 +227,6 @@ public class MediaLibraryProviderExtendedTests : StrapiIntegrationTestBase
         mediaField.Size.ShouldBe(102400);
         mediaField.Url.ShouldBe("/uploads/test_image_123.jpg");
         mediaField.Provider.ShouldBe("local");
-    }
-
-    [Fact]
-    public void FileUploadRequest_WithAllOptionalProperties_ShouldWork()
-    {
-        // Arrange & Act
-        var request = new FileUploadRequest
-        {
-            FileStream = new MemoryStream(new byte[] { 137, 80, 78, 71 }), // PNG header
-            FileName = "test.png",
-            ContentType = "image/png",
-            AlternativeText = "A beautiful image",
-            Caption = "This image shows something amazing",
-            Path = "/custom/path"
-        };
-
-        // Assert
-        request.FileStream.ShouldNotBeNull();
-        request.FileName.ShouldBe("test.png");
-        request.ContentType.ShouldBe("image/png");
-        request.AlternativeText.ShouldBe("A beautiful image");
-        request.Caption.ShouldBe("This image shows something amazing");
-        request.Path.ShouldBe("/custom/path");
     }
 
     [Fact]
@@ -274,46 +322,46 @@ public class MediaLibraryProviderExtendedTests : StrapiIntegrationTestBase
     }
 
     [Fact]
-    public void EntryFileUploadRequest_InheritsFromFileUploadRequest()
+    public void MultipleFileUploadRequests_ShouldSupportBatchOperations()
     {
-        // Arrange & Act
-        var entryRequest = new EntryFileUploadRequest();
-
-        // Assert
-        entryRequest.ShouldBeAssignableTo<FileUploadRequest>();
-    }
-
-    [Fact]
-    public void FileUploadRequest_WithEmptyStream_ShouldWork()
-    {
-        // Arrange & Act
-        var request = new FileUploadRequest
+        // Arrange
+        var jpegBytes = new byte[] { 255, 216, 255 }; // JPEG header
+        var pngBytes = new byte[] { 137, 80, 78, 71 }; // PNG header
+        
+        // Act
+        var batchRequests = new[]
         {
-            FileStream = new MemoryStream(new byte[0]),
-            FileName = "empty.txt",
-            ContentType = "text/plain"
+            new FileUploadRequest
+            {
+                FileStream = new MemoryStream(jpegBytes),
+                FileName = "batch-1.jpg",
+                ContentType = "image/jpeg",
+                AlternativeText = "Batch upload 1"
+            },
+            new FileUploadRequest
+            {
+                FileStream = new MemoryStream(pngBytes),
+                FileName = "batch-2.png", 
+                ContentType = "image/png",
+                AlternativeText = "Batch upload 2"
+            },
+            new FileUploadRequest
+            {
+                FileStream = new MemoryStream(jpegBytes),
+                FileName = "batch-3.jpg",
+                ContentType = "image/jpeg",
+                Caption = "Batch upload 3 caption"
+            }
         };
 
         // Assert
-        request.FileStream.Length.ShouldBe(0);
-        request.FileName.ShouldBe("empty.txt");
-        request.ContentType.ShouldBe("text/plain");
-    }
-
-    [Fact]
-    public void FileInfoUpdateRequest_WithNullValues_ShouldWork()
-    {
-        // Arrange & Act
-        var request = new FileInfoUpdateRequest
-        {
-            Name = null,
-            AlternativeText = null,
-            Caption = null
-        };
-
-        // Assert
-        request.Name.ShouldBeNull();
-        request.AlternativeText.ShouldBeNull();
-        request.Caption.ShouldBeNull();
+        batchRequests.Length.ShouldBe(3);
+        batchRequests.All(r => r.FileStream.Length > 0).ShouldBeTrue();
+        batchRequests.All(r => !string.IsNullOrEmpty(r.FileName)).ShouldBeTrue();
+        batchRequests.All(r => !string.IsNullOrEmpty(r.ContentType)).ShouldBeTrue();
+        
+        // 驗證不同檔案類型
+        batchRequests.Count(r => r.ContentType == "image/jpeg").ShouldBe(2);
+        batchRequests.Count(r => r.ContentType == "image/png").ShouldBe(1);
     }
 }

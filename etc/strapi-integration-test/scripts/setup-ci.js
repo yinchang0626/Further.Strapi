@@ -7,6 +7,51 @@ const axios = require('axios');
 const fs = require('fs').promises;
 const path = require('path');
 
+// 共用組件定義
+const SHARED_COMPONENTS = {
+  'shared/string-item': {
+    collectionName: 'components_shared_string_items',
+    info: {
+      displayName: 'StringItem'
+    },
+    options: {},
+    attributes: {
+      value: {
+        type: 'string'
+      }
+    },
+    config: {}
+  },
+  'shared/media': {
+    collectionName: 'components_shared_media',
+    info: {
+      displayName: 'Media',
+      icon: 'file-video'
+    },
+    attributes: {
+      file: {
+        type: 'media',
+        allowedTypes: ['images', 'files', 'videos']
+      }
+    }
+  },
+  'shared/slider': {
+    collectionName: 'components_shared_sliders',
+    info: {
+      description: '',
+      displayName: 'Slider',
+      icon: 'address-book'
+    },
+    attributes: {
+      files: {
+        type: 'media',
+        multiple: true,
+        allowedTypes: ['images']
+      }
+    }
+  }
+};
+
 const STRAPI_URL = 'http://localhost:1337';
 const ADMIN_USER = {
   firstname: 'CI',
@@ -22,6 +67,40 @@ const API_TOKEN_CONFIG = {
   permissions: null, // full-access 不需要明確權限
   lifespan: null
 };
+
+async function ensureSharedComponents() {
+  console.log('📦 Ensuring shared components exist...');
+  
+  for (const [componentPath, componentSchema] of Object.entries(SHARED_COMPONENTS)) {
+    const [category, name] = componentPath.split('/');
+    const componentDir = path.join(process.cwd(), 'src', 'components', category);
+    const componentFile = path.join(componentDir, `${name}.json`);
+    
+    try {
+      // 檢查組件檔案是否存在
+      await fs.access(componentFile);
+      console.log(`✅ Component already exists: ${componentPath}`);
+    } catch {
+      // 檔案不存在，建立組件
+      console.log(`📝 Creating component: ${componentPath}`);
+      
+      try {
+        // 確保目錄存在
+        await fs.mkdir(componentDir, { recursive: true });
+        
+        // 寫入組件檔案
+        await fs.writeFile(componentFile, JSON.stringify(componentSchema, null, 2));
+        
+        console.log(`✅ Component created successfully: ${componentPath}`);
+      } catch (createError) {
+        console.error(`❌ Failed to create component ${componentPath}:`, createError.message);
+        throw createError;
+      }
+    }
+  }
+  
+  console.log('✅ All shared components ensured');
+}
 
 async function waitForStrapi(maxRetries = 30, interval = 2000) {
   console.log('🔍 Waiting for Strapi to be ready...');
@@ -120,85 +199,13 @@ async function loginAdminUser() {
   }
 }
 
-async function setPublicPermissions(jwtToken) {
-  console.log('🔓 設定完整 API 權限（包含 CRUD 和 Upload）...');
-  
-  try {
-    // 設定完整的 CRUD 權限
-    const permissions = {
-      'api::article.article': ['find', 'findOne', 'create', 'update', 'delete'],
-      'api::category.category': ['find', 'findOne', 'create', 'update', 'delete'],
-      'api::author.author': ['find', 'findOne', 'create', 'update', 'delete'],
-      'api::global.global': ['find', 'findOne', 'create', 'update', 'delete'],
-      'api::about.about': ['find', 'findOne', 'create', 'update', 'delete'],
-      'plugin::upload.upload': ['find', 'findOne', 'upload', 'destroy']
-    };
-    
-    // 先取得所有可用的權限
-    const permissionsResponse = await axios.get(`${STRAPI_URL}/admin/content-api/permissions`, {
-      headers: {
-        'Authorization': `Bearer ${jwtToken}`
-      },
-      timeout: 10000
-    });
-    
-    console.log('📋 可用權限:', Object.keys(permissionsResponse.data?.data || {}));
-    
-    // 取得 public role
-    const rolesResponse = await axios.get(`${STRAPI_URL}/admin/users-permissions/roles`, {
-      headers: {
-        'Authorization': `Bearer ${jwtToken}`
-      },
-      timeout: 10000
-    });
-    
-    const publicRole = rolesResponse.data?.find(role => role.type === 'public');
-    if (!publicRole) {
-      console.log('⚠️ 無法找到 public role');
-      return;
-    }
-    
-    console.log('✅ 找到 public role:', publicRole.id);
-    
-    // 設定權限
-    for (const [controller, actions] of Object.entries(permissions)) {
-      for (const action of actions) {
-        const permissionKey = `${controller}.${action}`;
-        console.log(`🔑 設定權限: ${permissionKey}`);
-        
-        try {
-          // 嘗試更新權限設定
-          await axios.put(`${STRAPI_URL}/admin/users-permissions/roles/${publicRole.id}`, {
-            permissions: {
-              [controller]: {
-                [action]: {
-                  enabled: true
-                }
-              }
-            }
-          }, {
-            headers: {
-              'Authorization': `Bearer ${jwtToken}`,
-              'Content-Type': 'application/json'
-            },
-            timeout: 5000
-          });
-          
-          console.log(`✅ 權限設定成功: ${permissionKey}`);
-        } catch (permError) {
-          console.log(`⚠️ 權限 ${permissionKey} 設定失敗:`, permError.response?.data || permError.message);
-        }
-      }
-    }
-    
-    console.log('✅ 權限設定完成');
-  } catch (error) {
-    console.log('⚠️ 權限設定失敗，但繼續進行:', error.response?.data || error.message);
-  }
-}
-
 async function createApiToken(jwtToken) {
   console.log('🎫 Creating API token...');
+  
+  // 安全說明：
+  // - 使用 full-access API Token 而非 public role 權限
+  // - API Token 只在測試環境使用，不會暴露給公眾
+  // - public role 保持最小權限，确保安全
   
   try {
     console.log('🎯 Creating full-access API token...');
@@ -232,8 +239,12 @@ async function createApiToken(jwtToken) {
   }
 }
 
-async function createTestConfig(apiToken) {
+async function createTestConfig(apiToken, testProjectDir) {
   console.log('📝 Creating test configuration...');
+  
+  if (!testProjectDir) {
+    throw new Error('❌ testProjectDir parameter is required');
+  }
   
   const testConfig = {
     Strapi: {
@@ -242,8 +253,8 @@ async function createTestConfig(apiToken) {
     }
   };
   
-  // 使用預設的 appsettings.json
-  const configPath = path.join(process.cwd(), '../../Further.Strapi.Tests/appsettings.json');
+  // 使用參數指定的測試專案目錄
+  const configPath = path.join(process.cwd(), `../../${testProjectDir}/appsettings.json`);
   const configDir = path.dirname(configPath);
   
   try {
@@ -288,22 +299,29 @@ async function main() {
   try {
     console.log('🚀 Starting Strapi CI setup...');
     
+    // 從命令列參數取得測試專案目錄
+    const testProjectDir = process.argv[2];
+    if (!testProjectDir) {
+      console.error('❌ Error: Test project directory is required');
+      console.error('Usage: node setup-ci.js <test-project-directory>');
+      console.error('Example: node setup-ci.js Further.Strapi.Tests');
+      process.exit(1);
+    }
+    console.log(`📁 Test project directory: ${testProjectDir}`);
+    
     // 1. 等待 Strapi 啟動
     await waitForStrapi();
     
     // 2. 建立管理員帳號
     const jwtToken = await createAdminUser();
     
-    // 3. 設定基本 API 權限
-    await setPublicPermissions(jwtToken);
-    
-    // 4. 建立 API Token
+    // 3. 建立 API Token（full-access，不需要設定 public 權限）
     const apiToken = await createApiToken(jwtToken);
     
-    // 5. 建立測試配置
-    await createTestConfig(apiToken);
+    // 4. 建立測試配置
+    await createTestConfig(apiToken, testProjectDir);
     
-    // 6. 驗證 API 存取
+    // 5. 驗證 API 存取
     await verifyApiAccess(apiToken);
     
     console.log('🎉 Strapi CI setup completed successfully!');
@@ -311,6 +329,7 @@ async function main() {
     console.log(`   - Admin User: ${ADMIN_USER.email}`);
     console.log(`   - API Token: ${apiToken.substring(0, 20)}...`);
     console.log(`   - Strapi URL: ${STRAPI_URL}`);
+    console.log(`   - Test Project: ${testProjectDir}`);
     
     process.exit(0);
   } catch (error) {
@@ -329,5 +348,7 @@ module.exports = {
   createAdminUser,
   createApiToken,
   createTestConfig,
-  verifyApiAccess
+  verifyApiAccess,
+  ensureSharedComponents,
+  main
 };

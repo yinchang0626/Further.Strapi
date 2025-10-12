@@ -1,0 +1,13 @@
+{
+  "collectionName": "components_shared_string_items",
+  "info": {
+    "displayName": "StringItem"
+  },
+  "options": {},
+  "attributes": {
+    "value": {
+      "type": "string"
+    }
+  },
+  "config": {}
+}

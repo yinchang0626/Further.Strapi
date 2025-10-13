@@ -2,9 +2,10 @@ name: "🧪 CI (Continuous Integration)"
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main ]
+  workflow_dispatch:        # 想發就發
 
 env:
   DOTNET_NOLOGO: true

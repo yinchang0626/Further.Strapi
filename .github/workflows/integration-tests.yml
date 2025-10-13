@@ -71,44 +71,62 @@ jobs:
           Passed = 0
           Failed = 0
           Skipped = 0
+          HasTestResults = $false
         }
         
+        Write-Host "🔍 檢查測試結果目錄..."
         if (Test-Path "TestResults") {
+          Write-Host "✅ TestResults 目錄存在"
           $trxFiles = Get-ChildItem "TestResults" -Filter "*.trx" -Recurse
+          Write-Host "📁 找到 $($trxFiles.Count) 個 .trx 檔案"
+          
           foreach ($trxFile in $trxFiles) {
-            $trxContent = Get-Content $trxFile.FullName -Raw
-            $trxXml = [xml]$trxContent
-            
-            if ($trxXml.TestRun.ResultSummary) {
-              $summary = $trxXml.TestRun.ResultSummary
-              $testResults.Total += [int]$summary.outcome.total
-              $testResults.Passed += [int]$summary.outcome.passed
-              $testResults.Failed += [int]$summary.outcome.failed
-              if ($summary.outcome.notExecuted) {
-                $testResults.Skipped += [int]$summary.outcome.notExecuted
+            Write-Host "📄 解析檔案: $($trxFile.Name)"
+            try {
+              $trxContent = Get-Content $trxFile.FullName -Raw
+              $trxXml = [xml]$trxContent
+              
+              if ($trxXml.TestRun.ResultSummary) {
+                $summary = $trxXml.TestRun.ResultSummary
+                $testResults.Total += [int]$summary.outcome.total
+                $testResults.Passed += [int]$summary.outcome.passed
+                $testResults.Failed += [int]$summary.outcome.failed
+                if ($summary.outcome.notExecuted) {
+                  $testResults.Skipped += [int]$summary.outcome.notExecuted
+                }
+                $testResults.HasTestResults = $true
+                Write-Host "✅ 成功解析測試結果: 總計=$($testResults.Total), 成功=$($testResults.Passed), 失敗=$($testResults.Failed)"
               }
+            } catch {
+              Write-Host "❌ 解析 .trx 檔案失敗: $($_.Exception.Message)"
             }
           }
+        } else {
+          Write-Host "❌ TestResults 目錄不存在 - 可能是編譯失敗"
         }
         
         # 解析覆蓋率結果
+        Write-Host "🔍 檢查覆蓋率檔案..."
         if (Test-Path "coverage.cobertura.xml") {
-          $coverage = Get-Content "coverage.cobertura.xml" -Raw
-          $lineRate = [regex]::Match($coverage, 'line-rate="([^"]+)"').Groups[1].Value
-          $branchRate = [regex]::Match($coverage, 'branch-rate="([^"]+)"').Groups[1].Value
-          $linesCovered = [regex]::Match($coverage, 'lines-covered="([^"]+)"').Groups[1].Value
-          $linesValid = [regex]::Match($coverage, 'lines-valid="([^"]+)"').Groups[1].Value
-          $branchesCovered = [regex]::Match($coverage, 'branches-covered="([^"]+)"').Groups[1].Value
-          $branchesValid = [regex]::Match($coverage, 'branches-valid="([^"]+)"').Groups[1].Value
-          
-          $linePercent = [math]::Round([double]$lineRate * 100, 2)
-          $branchPercent = [math]::Round([double]$branchRate * 100, 2)
-          
-          # 測試狀態 emoji
-          $testIcon = if ($testResults.Failed -eq 0) { "✅" } else { "❌" }
-          $coverageIcon = if ($linePercent -ge 80) { "🟢" } elseif ($linePercent -ge 60) { "🟡" } else { "🔴" }
-          
-          $summary = @"
+          Write-Host "✅ 覆蓋率檔案存在"
+          try {
+            $coverage = Get-Content "coverage.cobertura.xml" -Raw
+            $lineRate = [regex]::Match($coverage, 'line-rate="([^"]+)"').Groups[1].Value
+            $branchRate = [regex]::Match($coverage, 'branch-rate="([^"]+)"').Groups[1].Value
+            $linesCovered = [regex]::Match($coverage, 'lines-covered="([^"]+)"').Groups[1].Value
+            $linesValid = [regex]::Match($coverage, 'lines-valid="([^"]+)"').Groups[1].Value
+            $branchesCovered = [regex]::Match($coverage, 'branches-covered="([^"]+)"').Groups[1].Value
+            $branchesValid = [regex]::Match($coverage, 'branches-valid="([^"]+)"').Groups[1].Value
+            
+            $linePercent = [math]::Round([double]$lineRate * 100, 2)
+            $branchPercent = [math]::Round([double]$branchRate * 100, 2)
+            
+            # 測試狀態 emoji
+            $testIcon = if ($testResults.HasTestResults -and $testResults.Failed -eq 0) { "✅" } else { "❌" }
+            $coverageIcon = if ($linePercent -ge 80) { "🟢" } elseif ($linePercent -ge 60) { "🟡" } else { "🔴" }
+            
+            if ($testResults.HasTestResults) {
+              $summary = @"
         ## 🧪 測試結果
         
         | 項目 | 結果 | 詳細 |
@@ -125,13 +143,44 @@ jobs:
         
         🎯 **測試品質**: 全面覆蓋核心功能和邊界條件
         "@
-          
-          $summary | Out-File -FilePath "coverage-summary.md" -Encoding UTF8
+            } else {
+              $summary = @"
+        ## ❌ 編譯或測試執行失敗
+        
+        測試無法正常執行，可能是編譯錯誤或環境問題。
+        
+        ## 📊 覆蓋率報告
+        
+        | 指標 | 結果 | 詳細 |
+        |------|------|------|
+        | **行覆蓋率** | **$coverageIcon $linePercent%** | $linesCovered/$linesValid 行 |
+        | **分支覆蓋率** | **$branchPercent%** | $branchesCovered/$branchesValid 分支 |
+        
+        ⚠️ **注意**: 覆蓋率數據可能不完整
+        "@
+            }
+            
+            $summary | Out-File -FilePath "coverage-summary.md" -Encoding UTF8
+            Write-Host "✅ 成功生成覆蓋率摘要"
+          } catch {
+            Write-Host "❌ 解析覆蓋率檔案失敗: $($_.Exception.Message)"
+            # Fall back to basic error report
+            $summary = @"
+        ## ❌ 測試執行失敗
+        
+        測試執行過程中發生錯誤，無法生成完整報告。
+        
+        🔍 **建議**: 檢查編譯錯誤或環境配置問題
+        "@
+            $summary | Out-File -FilePath "coverage-summary.md" -Encoding UTF8
+          }
         } else {
-          # 如果沒有覆蓋率文件，至少顯示測試結果
-          $testIcon = if ($testResults.Failed -eq 0) { "✅" } else { "❌" }
-          
-          $summary = @"
+          Write-Host "❌ 覆蓋率檔案不存在"
+          # 如果沒有覆蓋率文件，根據測試結果生成報告
+          if ($testResults.HasTestResults) {
+            $testIcon = if ($testResults.Failed -eq 0) { "✅" } else { "❌" }
+            
+            $summary = @"
         ## 🧪 測試結果
         
         | 項目 | 結果 | 詳細 |
@@ -139,10 +188,25 @@ jobs:
         | **測試狀態** | **$testIcon** | $($testResults.Passed) 成功, $($testResults.Failed) 失敗, $($testResults.Skipped) 跳過 |
         | **總測試數** | **$($testResults.Total)** | 共執行 $($testResults.Total) 個測試 |
         
-        ❌ 覆蓋率文件不存在
+        ❌ 覆蓋率檔案不存在 - 可能是測試環境問題
         "@
+          } else {
+            $summary = @"
+        ## ❌ 編譯或測試執行失敗
+        
+        無法找到測試結果或覆蓋率檔案。
+        
+        🔍 **可能原因**:
+        - 編譯錯誤
+        - 測試環境配置問題  
+        - Strapi 服務啟動失敗
+        
+        請檢查 CI 日誌中的詳細錯誤訊息。
+        "@
+          }
           
           $summary | Out-File -FilePath "coverage-summary.md" -Encoding UTF8
+          Write-Host "✅ 生成錯誤狀態摘要"
         }
         
     - name: "💬 Comment Coverage Summary on PR"

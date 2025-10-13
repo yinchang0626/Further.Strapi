@@ -86,16 +86,16 @@ jobs:
               $trxContent = Get-Content $trxFile.FullName -Raw
               $trxXml = [xml]$trxContent
               
-              if ($trxXml.TestRun.ResultSummary) {
-                $summary = $trxXml.TestRun.ResultSummary
-                $testResults.Total += [int]$summary.outcome.total
-                $testResults.Passed += [int]$summary.outcome.passed
-                $testResults.Failed += [int]$summary.outcome.failed
-                if ($summary.outcome.notExecuted) {
-                  $testResults.Skipped += [int]$summary.outcome.notExecuted
+              if ($trxXml.TestRun.ResultSummary -and $trxXml.TestRun.ResultSummary.Counters) {
+                $counters = $trxXml.TestRun.ResultSummary.Counters
+                $testResults.Total += [int]$counters.total
+                $testResults.Passed += [int]$counters.passed
+                $testResults.Failed += [int]$counters.failed
+                if ($counters.notExecuted) {
+                  $testResults.Skipped += [int]$counters.notExecuted
                 }
                 $testResults.HasTestResults = $true
-                Write-Host "✅ 成功解析測試結果: 總計=$($testResults.Total), 成功=$($testResults.Passed), 失敗=$($testResults.Failed)"
+                Write-Host "✅ 成功解析測試結果: 總計=$($testResults.Total), 成功=$($testResults.Passed), 失敗=$($testResults.Failed), 跳過=$($testResults.Skipped)"
               }
             } catch {
               Write-Host "❌ 解析 .trx 檔案失敗: $($_.Exception.Message)"

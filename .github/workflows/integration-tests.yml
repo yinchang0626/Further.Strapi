@@ -65,6 +65,33 @@ jobs:
       if: always()
       shell: pwsh
       run: |
+        # 解析測試結果
+        $testResults = @{
+          Total = 0
+          Passed = 0
+          Failed = 0
+          Skipped = 0
+        }
+        
+        if (Test-Path "TestResults") {
+          $trxFiles = Get-ChildItem "TestResults" -Filter "*.trx" -Recurse
+          foreach ($trxFile in $trxFiles) {
+            $trxContent = Get-Content $trxFile.FullName -Raw
+            $trxXml = [xml]$trxContent
+            
+            if ($trxXml.TestRun.ResultSummary) {
+              $summary = $trxXml.TestRun.ResultSummary
+              $testResults.Total += [int]$summary.outcome.total
+              $testResults.Passed += [int]$summary.outcome.passed
+              $testResults.Failed += [int]$summary.outcome.failed
+              if ($summary.outcome.notExecuted) {
+                $testResults.Skipped += [int]$summary.outcome.notExecuted
+              }
+            }
+          }
+        }
+        
+        # 解析覆蓋率結果
         if (Test-Path "coverage.cobertura.xml") {
           $coverage = Get-Content "coverage.cobertura.xml" -Raw
           $lineRate = [regex]::Match($coverage, 'line-rate="([^"]+)"').Groups[1].Value
@@ -77,12 +104,23 @@ jobs:
           $linePercent = [math]::Round([double]$lineRate * 100, 2)
           $branchPercent = [math]::Round([double]$branchRate * 100, 2)
           
+          # 測試狀態 emoji
+          $testIcon = if ($testResults.Failed -eq 0) { "✅" } else { "❌" }
+          $coverageIcon = if ($linePercent -ge 80) { "🟢" } elseif ($linePercent -ge 60) { "🟡" } else { "🔴" }
+          
           $summary = @"
+        ## 🧪 測試結果
+        
+        | 項目 | 結果 | 詳細 |
+        |------|------|------|
+        | **測試狀態** | **$testIcon** | $($testResults.Passed) 成功, $($testResults.Failed) 失敗, $($testResults.Skipped) 跳過 |
+        | **總測試數** | **$($testResults.Total)** | 共執行 $($testResults.Total) 個測試 |
+        
         ## 📊 覆蓋率報告
         
         | 指標 | 結果 | 詳細 |
         |------|------|------|
-        | **行覆蓋率** | **$linePercent%** | $linesCovered/$linesValid 行 |
+        | **行覆蓋率** | **$coverageIcon $linePercent%** | $linesCovered/$linesValid 行 |
         | **分支覆蓋率** | **$branchPercent%** | $branchesCovered/$branchesValid 分支 |
         
         🎯 **測試品質**: 全面覆蓋核心功能和邊界條件
@@ -90,7 +128,21 @@ jobs:
           
           $summary | Out-File -FilePath "coverage-summary.md" -Encoding UTF8
         } else {
-          "❌ 覆蓋率文件不存在" | Out-File -FilePath "coverage-summary.md" -Encoding UTF8
+          # 如果沒有覆蓋率文件，至少顯示測試結果
+          $testIcon = if ($testResults.Failed -eq 0) { "✅" } else { "❌" }
+          
+          $summary = @"
+        ## 🧪 測試結果
+        
+        | 項目 | 結果 | 詳細 |
+        |------|------|------|
+        | **測試狀態** | **$testIcon** | $($testResults.Passed) 成功, $($testResults.Failed) 失敗, $($testResults.Skipped) 跳過 |
+        | **總測試數** | **$($testResults.Total)** | 共執行 $($testResults.Total) 個測試 |
+        
+        ❌ 覆蓋率文件不存在
+        "@
+          
+          $summary | Out-File -FilePath "coverage-summary.md" -Encoding UTF8
         }
         
     - name: "💬 Comment Coverage Summary on PR"
@@ -116,7 +168,7 @@ jobs:
             
             const botComment = comments.find(comment => 
               comment.user.type === 'Bot' && 
-              comment.body.includes('📊 覆蓋率報告')
+              (comment.body.includes('🧪 測試結果') || comment.body.includes('📊 覆蓋率報告'))
             );
             
             if (botComment) {
@@ -165,7 +217,7 @@ jobs:
               
               const botComment = comments.find(comment => 
                 comment.user.type === 'Bot' && 
-                comment.body.includes('📊 覆蓋率報告')
+                (comment.body.includes('🧪 測試結果') || comment.body.includes('📊 覆蓋率報告'))
               );
               
               if (botComment) {

@@ -126,6 +126,16 @@ DATABASE_FILENAME=.tmp/data.db
     $envContent | Out-File -FilePath ".env" -Encoding utf8
     Write-Host "✅ .env 檔案已生成" -ForegroundColor Green
 
+    # 確保共享組件存在 (在 Strapi 啟動前)
+    Write-Host "📦 確保共享組件存在..." -ForegroundColor Yellow
+    node scripts/ensure-components.js
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "❌ 組件確保失敗!" -ForegroundColor Red
+        Pop-Location
+        exit 1
+    }
+    Write-Host "✅ 共享組件已確保" -ForegroundColor Green
+
     # 啟動 Strapi
     Write-Host "🚀 啟動 Strapi..." -ForegroundColor Yellow
     $strapiProcess = Start-Process -FilePath "npm" -ArgumentList "run", "develop" -PassThru -NoNewWindow
@@ -155,7 +165,7 @@ DATABASE_FILENAME=.tmp/data.db
 
     # 執行 CI 設定腳本
     Write-Host "🔑 執行 CI 設定..." -ForegroundColor Yellow
-    node scripts/setup-ci.js
+    node scripts/setup-ci.js Further.Strapi.Tests
     if ($LASTEXITCODE -ne 0) {
         Write-Host "❌ CI 設定失敗!" -ForegroundColor Red
         exit 1

@@ -212,7 +212,14 @@ public static class StrapiProtocol
     {
         /// <summary>
         /// 建立檔案上傳的 MultipartFormDataContent
+        /// 
+        /// 注意事項：
+        /// 1. fileInfo 必須序列化為 JSON 格式
+        /// 2. StringContent 的 Content-Type 必須清除，讓 Strapi 正確解析
+        /// 3. 單檔案上傳的標準格式，與 entryFile 上傳略有不同
         /// </summary>
+        /// <param name="fileUpload">檔案上傳請求</param>
+        /// <returns>配置正確的 MultipartFormDataContent</returns>
         public static MultipartFormDataContent CreateUploadForm(FileUploadRequest fileUpload)
         {
             var form = new MultipartFormDataContent();
@@ -223,6 +230,7 @@ public static class StrapiProtocol
             form.Add(fileContent, "files", fileUpload.FileName);
 
             // 加入檔案 metadata 為 JSON 字符串 (單檔案上傳標準格式)
+            // 包含檔案名稱、替代文字、說明文字等資訊
             var fileInfo = new
             {
                 name = fileUpload.FileName,
@@ -236,7 +244,7 @@ public static class StrapiProtocol
                 DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
             });
 
-            // 不要指定 Content-Type，讓它使用預設的 text/plain
+            // 關鍵：不要指定 Content-Type，讓它使用預設的 text/plain
             // 避免使用 StringContent(string, Encoding) 因為它會自動設置 Content-Type
             // 甚至 StringContent(string) 也會設置默認 Content-Type，需要手動清除
             var stringContent = new StringContent(fileInfoJson);
@@ -253,21 +261,46 @@ public static class StrapiProtocol
         }
 
         /// <summary>
-        /// 建立關聯檔案上傳的 MultipartFormDataContent
+        /// 建立多檔案上傳的 MultipartFormDataContent
+        /// 
+        /// 注意事項：
+        /// 1. 支援批次上傳多個檔案
+        /// 2. 每個檔案都要有對應的 fileInfo
+        /// 3. fileInfo 為 JSON 陣列格式
         /// </summary>
-        public static MultipartFormDataContent CreateEntryFileUploadForm(EntryFileUploadRequest entryFileUpload)
+        /// <param name="fileUploads">檔案上傳請求列表</param>
+        /// <returns>配置正確的 MultipartFormDataContent</returns>
+        public static MultipartFormDataContent CreateMultipleUploadForm(IEnumerable<FileUploadRequest> fileUploads)
         {
-            var form = CreateUploadForm(entryFileUpload);
+            var form = new MultipartFormDataContent();
+            var fileInfoList = new List<object>();
 
-            // 加入關聯資訊
-            form.Add(new StringContent(entryFileUpload.RefId, Encoding.UTF8), "refId");
-            form.Add(new StringContent(entryFileUpload.Ref, Encoding.UTF8), "ref");
-            form.Add(new StringContent(entryFileUpload.Field, Encoding.UTF8), "field");
-
-            if (!string.IsNullOrEmpty(entryFileUpload.Source))
+            foreach (var fileUpload in fileUploads)
             {
-                form.Add(new StringContent(entryFileUpload.Source, Encoding.UTF8), "source");
+                // 加入檔案內容
+                var fileContent = new StreamContent(fileUpload.FileStream);
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(fileUpload.ContentType);
+                form.Add(fileContent, "files", fileUpload.FileName);
+
+                // 收集檔案 metadata
+                fileInfoList.Add(new
+                {
+                    name = fileUpload.FileName,
+                    alternativeText = fileUpload.AlternativeText,
+                    caption = fileUpload.Caption
+                });
             }
+
+            // 加入所有檔案的 metadata 為 JSON 陣列
+            var fileInfoJson = JsonSerializer.Serialize(fileInfoList, new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            });
+
+            var stringContent = new StringContent(fileInfoJson);
+            stringContent.Headers.ContentType = null; // 清除 Content-Type
+            form.Add(stringContent, "fileInfo");
 
             return form;
         }

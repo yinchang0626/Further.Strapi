@@ -18,16 +18,8 @@ public class FileUploadRequest
     public string? Path { get; set; } // 僅在 AWS S3 等 provider 支援
 }
 
-/// <summary>
-/// 關聯檔案到內容項目的上傳請求
-/// </summary>
-public class EntryFileUploadRequest : FileUploadRequest
-{
-    public string RefId { get; set; } = string.Empty; // 關聯的 entry ID
-    public string Ref { get; set; } = string.Empty; // 模型的 uid，例如 "api::restaurant.restaurant"
-    public string Field { get; set; } = string.Empty; // 欄位名稱
-    public string? Source { get; set; } // 外掛名稱（可選）
-}
+// EntryFileUploadRequest 已移除
+// 應用層請分兩步驟：1. 上傳檔案 2. 更新實體關聯
 
 /// <summary>
 /// 檔案資訊更新請求
@@ -53,11 +45,11 @@ public interface IMediaLibraryProvider
     Task<StrapiMediaField> UploadAsync(FileUploadRequest fileUpload);
 
     /// <summary>
-    /// 上傳檔案並關聯到特定的內容項目
+    /// 批次上傳多個檔案到 Strapi Media Library
     /// </summary>
-    /// <param name="entryFileUpload">關聯檔案上傳請求</param>
-    /// <returns>上傳後的檔案資訊</returns>
-    Task<StrapiMediaField> UploadEntryFileAsync(EntryFileUploadRequest entryFileUpload);
+    /// <param name="fileUploads">檔案上傳請求列表</param>
+    /// <returns>上傳後的檔案資訊列表</returns>
+    Task<List<StrapiMediaField>> UploadMultipleAsync(IEnumerable<FileUploadRequest> fileUploads);
 
     /// <summary>
     /// 取得單一檔案資訊

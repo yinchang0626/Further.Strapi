@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Options;
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
@@ -39,6 +39,13 @@ public class CollectionTypeProvider<T> : ICollectionTypeProvider<T>
         var request = new HttpRequestMessage(HttpMethod.Get, $"{path}{query}");
 
         var response = await client.SendAsync(request);
+
+        // 檢查 HTTP 回應狀態碼
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorContent = await response.Content.ReadAsStringAsync();
+            throw new HttpRequestException($"Strapi API 呼叫失敗. 狀態碼: {response.StatusCode}, 回應: {errorContent}");
+        }
 
         var responseData = await StrapiProtocol.Response.DeserializeResponse<StrapiSingleResponse<T>>(response, _jsonSerializer);
         
@@ -179,3 +186,4 @@ public class CollectionTypeProvider<T> : ICollectionTypeProvider<T>
     }
 
 }
+

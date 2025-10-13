@@ -12,6 +12,40 @@ public class PopulateBuilder
     private int _index = 0;
 
     /// <summary>
+    /// 需要忽略的基本類型和值類型，這些類型不應該被視為導航屬性
+    /// 
+    /// 重要說明：
+    /// - TimeOnly 和 DateOnly 是 .NET 6+ 引入的新時間類型
+    /// - 在 Strapi 中，它們對應簡單的字符串值，不是關聯對象
+    /// - 如果不將它們加入忽略清單，會被錯誤地當作導航屬性處理
+    /// - 這會導致生成無效的 populate 查詢字符串
+    /// 
+    /// 包含所有原始類型、常用值類型和字串類型
+    /// </summary>
+    private static readonly HashSet<Type> IgnoredTypes = new()
+    {
+        // 字串類型
+        typeof(string),
+        
+        // GUID 類型
+        typeof(Guid),
+        
+        // 日期時間類型 - 重要：包含 .NET 6+ 的新類型
+        typeof(DateTime),
+        typeof(DateOnly),    // .NET 6+ 日期類型，在 Strapi 中為簡單字符串
+        typeof(TimeOnly),    // .NET 6+ 時間類型，在 Strapi 中為簡單字符串
+        typeof(DateTimeOffset),
+        typeof(TimeSpan),
+        
+        // 數值類型 (除了原始類型之外的)
+        typeof(decimal),
+        
+        // 其他常用值類型
+        typeof(Uri),
+        typeof(Version)
+    };
+
+    /// <summary>
     /// 根據型別自動產生 Populate
     /// </summary>
     public string GenerateForType<T>(int maxDepth = 5)
@@ -130,16 +164,51 @@ public class PopulateBuilder
         visitedTypes.Remove(type);
     }
 
+    /// <summary>
+    /// 判斷指定的類型是否為導航屬性
+    /// 
+    /// 核心邏輯說明：
+    /// 1. 原始類型（int, bool, char 等）不是導航屬性
+    /// 2. 枚舉類型不是導航屬性
+    /// 3. IgnoredTypes 清單中的類型不是導航屬性
+    /// 4. 可空版本的上述類型也不是導航屬性
+    /// 5. 其他複雜對象類型才被視為導航屬性
+    /// 
+    /// 修復歷史：
+    /// - 原本未正確處理 TimeOnly/DateOnly，導致它們被誤判為導航屬性
+    /// - 透過集中式的 IgnoredTypes 管理，確保類型檢查的一致性
+    /// </summary>
+    /// <param name="type">要檢查的類型</param>
+    /// <returns>
+    /// 如果類型應該被視為導航屬性（需要 populate）則返回 true，否則返回 false
+    /// </returns>
+    /// <remarks>
+    /// 以下類型不會被視為導航屬性：
+    /// - 原始類型 (int, bool, char 等)
+    /// - 枚舉類型
+    /// - IgnoredTypes 清單中的類型 (string, Guid, DateTime, TimeOnly, DateOnly 等)
+    /// - 上述類型的可空版本
+    /// </remarks>
     private bool IsNavigationProperty(Type type)
     {
-        if (type.IsPrimitive || type == typeof(string) || type == typeof(Guid) || 
-            type == typeof(DateTime) || type.IsEnum || type == typeof(decimal))
+        // 檢查是否為原始類型 (int, bool, char, double, float 等)
+        if (type.IsPrimitive)
             return false;
 
+        // 檢查是否為枚舉類型
+        if (type.IsEnum)
+            return false;
+
+        // 檢查是否在忽略類型清單中
+        if (IgnoredTypes.Contains(type))
+            return false;
+
+        // 處理可空類型 (如 int?, DateTime?, Guid? 等)
         var underlyingType = Nullable.GetUnderlyingType(type);
         if (underlyingType != null)
             return IsNavigationProperty(underlyingType);
 
+        // 其他類型被視為導航屬性（需要 populate）
         return true;
     }
 

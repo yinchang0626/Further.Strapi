@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using Xunit;
 using Shouldly;
@@ -35,21 +37,31 @@ public class StrapiProtocolMediaLibraryTests
     }
 
     [Fact]
-    public void CreateEntryFileUploadForm_WithRefData_ShouldCreateValidForm()
+    public void CreateMultipleUploadForm_WithValidRequests_ShouldCreateValidForm()
     {
         // Arrange
-        var entryFileUpload = new EntryFileUploadRequest
+        var fileUploads = new List<FileUploadRequest>
         {
-            FileStream = new MemoryStream(new byte[] { 255, 216, 255, 224 }),
-            FileName = "cover.jpg",
-            ContentType = "image/jpeg",
-            Ref = "api::article.article",
-            RefId = "doc123456",
-            Field = "cover"
+            new FileUploadRequest
+            {
+                FileStream = new MemoryStream(new byte[] { 255, 216, 255, 224 }),
+                FileName = "test1.jpg",
+                ContentType = "image/jpeg",
+                AlternativeText = "Test image 1",
+                Caption = "Test caption 1"
+            },
+            new FileUploadRequest
+            {
+                FileStream = new MemoryStream(new byte[] { 137, 80, 78, 71 }), // PNG header
+                FileName = "test2.png",
+                ContentType = "image/png",
+                AlternativeText = "Test image 2",
+                Caption = "Test caption 2"
+            }
         };
 
         // Act
-        var form = StrapiProtocol.MediaLibrary.CreateEntryFileUploadForm(entryFileUpload);
+        var form = StrapiProtocol.MediaLibrary.CreateMultipleUploadForm(fileUploads);
 
         // Assert
         form.ShouldNotBeNull();
@@ -95,30 +107,6 @@ public class StrapiProtocolMediaLibraryTests
         request.AlternativeText.ShouldBeNull();
         request.Caption.ShouldBeNull();
         request.Path.ShouldBeNull();
-    }
-
-    [Fact]
-    public void EntryFileUploadRequest_AllProperties_ShouldBeSettable()
-    {
-        // Arrange & Act
-        var request = new EntryFileUploadRequest
-        {
-            FileStream = new MemoryStream(),
-            FileName = "image.jpg",
-            ContentType = "image/jpeg",
-            Ref = "api::category.category",
-            RefId = "category_doc_789",
-            Field = "image",
-            Source = "plugin::upload.upload"
-        };
-
-        // Assert
-        request.Ref.ShouldBe("api::category.category");
-        request.RefId.ShouldBe("category_doc_789");
-        request.Field.ShouldBe("image");
-        request.Source.ShouldBe("plugin::upload.upload");
-        request.FileName.ShouldBe("image.jpg");
-        request.ContentType.ShouldBe("image/jpeg");
     }
 
     [Fact]
@@ -179,16 +167,6 @@ public class StrapiProtocolMediaLibraryTests
     }
 
     [Fact]
-    public void EntryFileUploadRequest_InheritsFromFileUploadRequest()
-    {
-        // Arrange & Act
-        var entryRequest = new EntryFileUploadRequest();
-
-        // Assert
-        entryRequest.ShouldBeAssignableTo<FileUploadRequest>();
-    }
-
-    [Fact]
     public void FileUploadRequest_WithEmptyStream_ShouldWork()
     {
         // Arrange & Act
@@ -226,5 +204,45 @@ public class StrapiProtocolMediaLibraryTests
         request.FileStream.Length.ShouldBe(1024 * 1024);
         request.FileName.ShouldBe("large-file.bin");
         request.ContentType.ShouldBe("application/octet-stream");
+    }
+
+    [Fact]
+    public void CreateMultipleUploadForm_WithEmptyList_ShouldCreateValidForm()
+    {
+        // Arrange
+        var fileUploads = new List<FileUploadRequest>();
+
+        // Act
+        var form = StrapiProtocol.MediaLibrary.CreateMultipleUploadForm(fileUploads);
+
+        // Assert
+        form.ShouldNotBeNull();
+        form.Headers.ContentType.ShouldNotBeNull();
+        form.Headers.ContentType!.MediaType.ShouldBe("multipart/form-data");
+    }
+
+    [Fact]
+    public void CreateMultipleUploadForm_WithSingleFile_ShouldCreateValidForm()
+    {
+        // Arrange
+        var fileUploads = new List<FileUploadRequest>
+        {
+            new FileUploadRequest
+            {
+                FileStream = new MemoryStream(new byte[] { 255, 216, 255, 224 }),
+                FileName = "single.jpg",
+                ContentType = "image/jpeg",
+                AlternativeText = "Single image",
+                Caption = "Single caption"
+            }
+        };
+
+        // Act
+        var form = StrapiProtocol.MediaLibrary.CreateMultipleUploadForm(fileUploads);
+
+        // Assert
+        form.ShouldNotBeNull();
+        form.Headers.ContentType.ShouldNotBeNull();
+        form.Headers.ContentType!.MediaType.ShouldBe("multipart/form-data");
     }
 }

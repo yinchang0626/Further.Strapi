@@ -82,6 +82,17 @@ jobs:
             --api-key ${{ secrets.NUGET_API_KEY }} \
             --skip-duplicate
         done
+        
+        # Push symbol packages separately
+        for symbolpackage in ./shipping/*.snupkg; do
+          if [ -f "$symbolpackage" ]; then
+            echo "🔍 Launching symbols $symbolpackage to NuGet.org..."
+            dotnet nuget push "$symbolpackage" \
+              --source "https://api.nuget.org/v3/index.json" \
+              --api-key ${{ secrets.NUGET_API_KEY }} \
+              --skip-duplicate
+          fi
+        done
 
     - name: "🏷️ Create version tag"
       if: steps.checkTag.outputs.exists == 'false'

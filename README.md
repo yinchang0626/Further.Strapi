@@ -252,7 +252,7 @@ public class RichTextComponent : IStrapiComponent
 [StrapiComponentName("shared.media")]
 public class MediaComponent : IStrapiComponent
 {
-    public StrapiFile File { get; set; }
+    public StrapiMediaField? File { get; set; }
     // __component is automatically handled by the polymorphic system
 }
 
@@ -313,12 +313,11 @@ Further.Strapi/
 │   ├── MediaLibraryProvider.cs     # Media library management
 │   ├── StrapiProtocol.cs          # HTTP protocol handling
 │   └── StrapiWriteSerializer.cs    # Smart serialization
-├── Further.Strapi.Contracts/       # Public interfaces and DTOs
-│   ├── ICollectionTypeProvider.cs  # Collection type interface
-│   ├── ISingleTypeProvider.cs      # Single type interface
-│   ├── IMediaLibraryProvider.cs    # Media library interface
-│   └── StrapiOptions.cs           # Configuration options
-├── Further.Strapi.Shared/          # Shared utilities
+├── Further.Strapi.Shared/          # Shared utilities and interfaces
+│   ├── IStrapiComponent.cs        # Component interface
+│   ├── StrapiMediaField.cs        # Media field types
+│   ├── StrapiAttributes.cs        # Component name attributes
+│   └── Components/                # Shared component definitions
 └── Further.Strapi.Tests/           # Comprehensive test suite
     ├── Integration/                # Integration tests
     ├── Unit/                      # Unit tests

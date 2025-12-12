@@ -3,22 +3,32 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Volo.Abp.Json;
+using Further.Strapi.Serialization;
 
 namespace Further.Strapi;
 
 /// <summary>
 /// Strapi 寫入操作序列化器 - 處理新增和更新時的物件簡化
-/// 處理系統欄位排除和 Component 的 __component 欄位邏輯
-/// 重構版本：提取方法來分離欄位過濾邏輯
+///
+/// 功能：
+/// 1. 類型自動識別：自動將 Media 轉為 Id，Relation 轉為 DocumentId
+/// 2. 系統欄位排除：移除 id, documentId, createdAt, updatedAt, publishedAt
+/// 3. Component 處理：Dynamic Zone 中保留 __component，其他地方移除
+///
+/// 自動向後相容：
+/// - 如果物件的屬性有 [JsonConverter] 標註 → 使用舊方式（依賴 JsonConverter）
+/// - 如果物件的屬性沒有 [JsonConverter] 標註 → 使用新方式（TypeAwareConverter）
 /// </summary>
 public class StrapiWriteSerializer : Volo.Abp.DependencyInjection.ITransientDependency
 {
     private readonly IJsonSerializer _jsonSerializer;
-    
+    private readonly ITypeAwareConverter _typeAwareConverter;
+
     // 常數定義 - 避免魔術字串
     private const string COMPONENT_FIELD = "__component";
-    
+
     /// <summary>
     /// 需要排除的系統欄位名稱
     /// </summary>
@@ -27,17 +37,38 @@ public class StrapiWriteSerializer : Volo.Abp.DependencyInjection.ITransientDepe
         "id", "documentId", "createdAt", "updatedAt", "publishedAt"
     };
 
-    public StrapiWriteSerializer(IJsonSerializer jsonSerializer)
+    public StrapiWriteSerializer(IJsonSerializer jsonSerializer, ITypeAwareConverter typeAwareConverter)
     {
         _jsonSerializer = jsonSerializer;
+        _typeAwareConverter = typeAwareConverter;
     }
 
+    /// <summary>
+    /// 為寫入操作序列化物件
+    /// 自動判斷使用新方式或舊方式：
+    /// - 物件屬性有 [JsonConverter] → 舊方式（依賴 JsonConverter）
+    /// - 物件屬性沒有 [JsonConverter] → 新方式（TypeAwareConverter）
+    /// </summary>
+    /// <param name="obj">要序列化的物件</param>
+    /// <returns>序列化後的 JSON 字串</returns>
     public string? SerializeForUpdate(object? obj)
     {
         if (obj == null) return null;
 
-        // 使用 ABP 的 JsonSerializer 序列化為 JSON
-        var json = _jsonSerializer.Serialize(obj);
+        string json;
+
+        // 自動判斷：檢查物件是否有 [JsonConverter] 屬性
+        if (HasAnyJsonConverterAttribute(obj.GetType()))
+        {
+            // 舊方式：直接序列化（依賴 [JsonConverter] 屬性）
+            json = _jsonSerializer.Serialize(obj);
+        }
+        else
+        {
+            // 新方式：先用 TypeAwareConverter 預處理，自動轉換 Media/Relation
+            var preprocessed = _typeAwareConverter.ConvertForWrite(obj);
+            json = _jsonSerializer.Serialize(preprocessed);
+        }
 
         // 解析為 JsonDocument，然後獲取 RootElement
         using var jsonDocument = JsonDocument.Parse(json);
@@ -46,6 +77,15 @@ public class StrapiWriteSerializer : Volo.Abp.DependencyInjection.ITransientDepe
         // 清理並重建 - 處理系統欄位排除和 __component 邏輯
         var cleaned = CleanJsonElement(jsonElement, isInDynamicZone: false);
         return cleaned != null ? _jsonSerializer.Serialize(cleaned) : string.Empty;
+    }
+
+    /// <summary>
+    /// 檢查類型是否有任何屬性標註了 [JsonConverter]
+    /// </summary>
+    private static bool HasAnyJsonConverterAttribute(Type type)
+    {
+        var properties = type.GetProperties(BindingFlags.Public | BindingFlags.Instance);
+        return properties.Any(p => p.GetCustomAttribute<JsonConverterAttribute>() != null);
     }
 
     /// <summary>

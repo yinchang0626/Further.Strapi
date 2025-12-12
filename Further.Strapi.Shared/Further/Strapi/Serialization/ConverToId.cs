@@ -7,6 +7,12 @@ namespace Further.Strapi.Serialization;
 /// <summary>
 /// 序列化為 Id 的轉換器工廠
 /// </summary>
+/// <remarks>
+/// 此轉換器已過時。建議使用 TypeAwareConverter 的自動類型識別功能。
+/// 新的 Model 定義不需要標註 [JsonConverter] 屬性，StrapiWriteSerializer 會自動識別
+/// StrapiMediaField 類型並轉換為 Id。
+/// </remarks>
+[Obsolete("建議使用 TypeAwareConverter 自動類型識別，不需要手動標註 [JsonConverter]。此轉換器保留用於向後相容。")]
 public class ConverToId : JsonConverterFactory
 {
     public override bool CanConvert(Type typeToConvert)

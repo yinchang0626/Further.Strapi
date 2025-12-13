@@ -474,6 +474,371 @@ public class TypeAwareConverterTests : StrapiIntegrationTestBase
 
     #endregion
 
+    #region ProcessList 完整覆蓋測試
+
+    [Fact]
+    public void PreprocessForWrite_WithComponentListContainingNull_ShouldHandleNullElements()
+    {
+        // Arrange - 列表中包含 null 元素
+        var wrapper = new ObjectWithComponentList
+        {
+            Blocks = new List<IStrapiComponent>
+            {
+                new SharedRichTextComponent { Body = "Text 1" },
+                null!,  // null 元素
+                new SharedQuoteComponent { Title = "Quote", Body = "Quote body" }
+            }
+        };
+
+        // Act
+        var result = _converter.ConvertForWrite(wrapper);
+
+        // Assert
+        var dict = (Dictionary<string, object?>)result!;
+        var blocks = (List<object?>)dict["blocks"]!;
+        blocks.Count.ShouldBe(3);
+
+        // 第一個是 Component
+        var firstBlock = (Dictionary<string, object?>)blocks[0]!;
+        firstBlock["__component"].ShouldBe("shared.rich-text");
+
+        // 第二個是 null
+        blocks[1].ShouldBeNull();
+
+        // 第三個是 Component
+        var thirdBlock = (Dictionary<string, object?>)blocks[2]!;
+        thirdBlock["__component"].ShouldBe("shared.quote");
+    }
+
+    [Fact]
+    public void PreprocessForWrite_WithNonComponentList_ShouldKeepOriginalValues()
+    {
+        // Arrange - 包含非 Component 類型的列表（如字串列表）
+        var wrapper = new ObjectWithStringList
+        {
+            Tags = new List<string> { "tag1", "tag2", "tag3" }
+        };
+
+        // Act
+        var result = _converter.ConvertForWrite(wrapper);
+
+        // Assert
+        var dict = (Dictionary<string, object?>)result!;
+        var tags = (List<object?>)dict["tags"]!;
+        tags.Count.ShouldBe(3);
+        tags[0].ShouldBe("tag1");
+        tags[1].ShouldBe("tag2");
+        tags[2].ShouldBe("tag3");
+    }
+
+    [Fact]
+    public void PreprocessForWrite_WithIListProperty_ShouldProcessAsList()
+    {
+        // Arrange - 使用 IList<T> 來覆蓋 IsListType 的 IList 分支
+        var wrapper = new ObjectWithIListProperty
+        {
+            Items = new List<string> { "item1", "item2" }
+        };
+
+        // Act
+        var result = _converter.ConvertForWrite(wrapper);
+
+        // Assert
+        var dict = (Dictionary<string, object?>)result!;
+        var items = (List<object?>)dict["items"]!;
+        items.Count.ShouldBe(2);
+        items[0].ShouldBe("item1");
+        items[1].ShouldBe("item2");
+    }
+
+    [Fact]
+    public void PreprocessForWrite_WithIEnumerableProperty_ShouldProcessAsList()
+    {
+        // Arrange - 使用 IEnumerable<T> 來覆蓋 IsListType 的 IEnumerable 分支
+        var wrapper = new ObjectWithIEnumerableProperty
+        {
+            Items = new List<string> { "a", "b", "c" }
+        };
+
+        // Act
+        var result = _converter.ConvertForWrite(wrapper);
+
+        // Assert
+        var dict = (Dictionary<string, object?>)result!;
+        var items = (List<object?>)dict["items"]!;
+        items.Count.ShouldBe(3);
+    }
+
+    [Fact]
+    public void PreprocessForWrite_WithICollectionProperty_ShouldProcessAsList()
+    {
+        // Arrange - 使用 ICollection<T> 來覆蓋 IsListType 的 ICollection 分支
+        var wrapper = new ObjectWithICollectionProperty
+        {
+            Items = new List<string> { "x", "y" }
+        };
+
+        // Act
+        var result = _converter.ConvertForWrite(wrapper);
+
+        // Assert
+        var dict = (Dictionary<string, object?>)result!;
+        var items = (List<object?>)dict["items"]!;
+        items.Count.ShouldBe(2);
+    }
+
+    [Fact]
+    public void PreprocessForWrite_WithIListOfMedia_ShouldConvertToIds()
+    {
+        // Arrange - 使用 IList<StrapiMediaField> 覆蓋 IsListOfType 的 IList 分支
+        var wrapper = new ObjectWithIListMedia
+        {
+            Images = new List<StrapiMediaField>
+            {
+                new StrapiMediaField { Id = 100, Name = "img1.jpg" },
+                new StrapiMediaField { Id = 200, Name = "img2.jpg" }
+            }
+        };
+
+        // Act
+        var result = _converter.ConvertForWrite(wrapper);
+
+        // Assert
+        var dict = (Dictionary<string, object?>)result!;
+        var ids = (List<int>)dict["images"]!;
+        ids.Count.ShouldBe(2);
+        ids.ShouldContain(100);
+        ids.ShouldContain(200);
+    }
+
+    [Fact]
+    public void PreprocessForWrite_WithICollectionOfRelation_ShouldConvertToDocumentIds()
+    {
+        // Arrange - 使用 ICollection<Category> 覆蓋 IsListOfStrapiCollectionType 的 ICollection 分支
+        var wrapper = new ObjectWithICollectionRelation
+        {
+            Categories = new List<Category>
+            {
+                new Category { DocumentId = "cat-a", Name = "A" },
+                new Category { DocumentId = "cat-b", Name = "B" }
+            }
+        };
+
+        // Act
+        var result = _converter.ConvertForWrite(wrapper);
+
+        // Assert
+        var dict = (Dictionary<string, object?>)result!;
+        var docIds = (List<string>)dict["categories"]!;
+        docIds.Count.ShouldBe(2);
+        docIds.ShouldContain("cat-a");
+        docIds.ShouldContain("cat-b");
+    }
+
+    [Fact]
+    public void PreprocessForWrite_WithIEnumerableOfComponent_ShouldAddComponentNames()
+    {
+        // Arrange - 使用 IEnumerable<IStrapiComponent> 覆蓋 Component 列表的 IEnumerable 分支
+        var wrapper = new ObjectWithIEnumerableComponent
+        {
+            Blocks = new List<IStrapiComponent>
+            {
+                new SharedRichTextComponent { Body = "Content" }
+            }
+        };
+
+        // Act
+        var result = _converter.ConvertForWrite(wrapper);
+
+        // Assert
+        var dict = (Dictionary<string, object?>)result!;
+        var blocks = (List<object?>)dict["blocks"]!;
+        blocks.Count.ShouldBe(1);
+        var firstBlock = (Dictionary<string, object?>)blocks[0]!;
+        firstBlock["__component"].ShouldBe("shared.rich-text");
+    }
+
+    [Fact]
+    public void PreprocessForWrite_WithIEnumerableOfMedia_ShouldConvertToIds()
+    {
+        // Arrange - 使用 IEnumerable<StrapiMediaField> 覆蓋 IsListOfType 的 IEnumerable 分支
+        var wrapper = new ObjectWithIEnumerableMedia
+        {
+            Images = new List<StrapiMediaField>
+            {
+                new StrapiMediaField { Id = 300, Name = "img.jpg" }
+            }
+        };
+
+        // Act
+        var result = _converter.ConvertForWrite(wrapper);
+
+        // Assert
+        var dict = (Dictionary<string, object?>)result!;
+        var ids = (List<int>)dict["images"]!;
+        ids.Count.ShouldBe(1);
+        ids.ShouldContain(300);
+    }
+
+    [Fact]
+    public void PreprocessForWrite_WithICollectionOfMedia_ShouldConvertToIds()
+    {
+        // Arrange - 使用 ICollection<StrapiMediaField> 覆蓋 IsListOfType 的 ICollection 分支
+        var wrapper = new ObjectWithICollectionMedia
+        {
+            Images = new List<StrapiMediaField>
+            {
+                new StrapiMediaField { Id = 400, Name = "img.jpg" }
+            }
+        };
+
+        // Act
+        var result = _converter.ConvertForWrite(wrapper);
+
+        // Assert
+        var dict = (Dictionary<string, object?>)result!;
+        var ids = (List<int>)dict["images"]!;
+        ids.ShouldContain(400);
+    }
+
+    [Fact]
+    public void PreprocessForWrite_WithIListOfRelation_ShouldConvertToDocumentIds()
+    {
+        // Arrange - 使用 IList<Category> 覆蓋 IsListOfStrapiCollectionType 的 IList 分支
+        var wrapper = new ObjectWithIListRelation
+        {
+            Categories = new List<Category>
+            {
+                new Category { DocumentId = "cat-x", Name = "X" }
+            }
+        };
+
+        // Act
+        var result = _converter.ConvertForWrite(wrapper);
+
+        // Assert
+        var dict = (Dictionary<string, object?>)result!;
+        var docIds = (List<string>)dict["categories"]!;
+        docIds.ShouldContain("cat-x");
+    }
+
+    [Fact]
+    public void PreprocessForWrite_WithIEnumerableOfRelation_ShouldConvertToDocumentIds()
+    {
+        // Arrange - 使用 IEnumerable<Category> 覆蓋 IsListOfStrapiCollectionType 的 IEnumerable 分支
+        var wrapper = new ObjectWithIEnumerableRelation
+        {
+            Categories = new List<Category>
+            {
+                new Category { DocumentId = "cat-y", Name = "Y" }
+            }
+        };
+
+        // Act
+        var result = _converter.ConvertForWrite(wrapper);
+
+        // Assert
+        var dict = (Dictionary<string, object?>)result!;
+        var docIds = (List<string>)dict["categories"]!;
+        docIds.ShouldContain("cat-y");
+    }
+
+    [Fact]
+    public void PreprocessForWrite_WithMediaListContainingZeroId_ShouldSkipZeroIds()
+    {
+        // Arrange - 覆蓋 ConvertMediaListToIds 中 media.Id <= 0 的分支
+        var gallery = new GalleryWithoutConverterAttribute
+        {
+            Title = "Mixed Gallery",
+            Images = new List<StrapiMediaField>
+            {
+                new StrapiMediaField { Id = 1, Name = "valid.jpg" },
+                new StrapiMediaField { Id = 0, Name = "invalid.jpg" },  // Id = 0 應該被跳過
+                new StrapiMediaField { Id = 2, Name = "valid2.jpg" }
+            }
+        };
+
+        // Act
+        var result = _converter.ConvertForWrite(gallery);
+
+        // Assert
+        var dict = (Dictionary<string, object?>)result!;
+        var ids = (List<int>)dict["images"]!;
+        ids.Count.ShouldBe(2);  // 只有 Id > 0 的
+        ids.ShouldContain(1);
+        ids.ShouldContain(2);
+        ids.ShouldNotContain(0);
+    }
+
+    [Fact]
+    public void PreprocessForWrite_WithMediaListContainingNull_ShouldSkipNullItems()
+    {
+        // Arrange - 覆蓋 ConvertMediaListToIds 中 item 不是 StrapiMediaField 的分支
+        var gallery = new GalleryWithoutConverterAttribute
+        {
+            Title = "Gallery with null",
+            Images = new List<StrapiMediaField>
+            {
+                new StrapiMediaField { Id = 5, Name = "valid.jpg" },
+                null!,  // null 值不是 StrapiMediaField，會被跳過
+                new StrapiMediaField { Id = 6, Name = "valid2.jpg" }
+            }
+        };
+
+        // Act
+        var result = _converter.ConvertForWrite(gallery);
+
+        // Assert
+        var dict = (Dictionary<string, object?>)result!;
+        var ids = (List<int>)dict["images"]!;
+        ids.Count.ShouldBe(2);  // 只有有效的 StrapiMediaField
+        ids.ShouldContain(5);
+        ids.ShouldContain(6);
+    }
+
+    [Fact]
+    public void PreprocessForWrite_WithNonListGenericType_ShouldNotProcessAsList()
+    {
+        // Arrange - 使用非列表泛型類型（如 Dictionary）來覆蓋 IsListType 返回 false 的分支
+        var wrapper = new ObjectWithDictionaryProperty
+        {
+            Metadata = new Dictionary<string, string>
+            {
+                { "key1", "value1" },
+                { "key2", "value2" }
+            }
+        };
+
+        // Act
+        var result = _converter.ConvertForWrite(wrapper);
+
+        // Assert
+        var dict = (Dictionary<string, object?>)result!;
+        // Dictionary 不是列表類型，應該保持原樣
+        dict["metadata"].ShouldBeOfType<Dictionary<string, string>>();
+    }
+
+    [Fact]
+    public void PreprocessForWrite_WithNonGenericArrayProperty_ShouldKeepAsIs()
+    {
+        // Arrange - 非泛型類型測試
+        var wrapper = new ObjectWithNonGenericProperty
+        {
+            Value = 42,
+            Name = "Test"
+        };
+
+        // Act
+        var result = _converter.ConvertForWrite(wrapper);
+
+        // Assert
+        var dict = (Dictionary<string, object?>)result!;
+        dict["value"].ShouldBe(42);
+        dict["name"].ShouldBe("Test");
+    }
+
+    #endregion
+
     #region JsonPropertyName 測試
 
     [Fact]
@@ -524,6 +889,111 @@ public class ObjectWithComponentList
 public class ObjectWithSingleType
 {
     public Global? GlobalSettings { get; set; }
+}
+
+/// <summary>
+/// 測試用 - 包含字串列表的物件
+/// </summary>
+public class ObjectWithStringList
+{
+    public List<string>? Tags { get; set; }
+}
+
+/// <summary>
+/// 測試用 - 使用 IList&lt;T&gt; 屬性的物件
+/// </summary>
+public class ObjectWithIListProperty
+{
+    public IList<string>? Items { get; set; }
+}
+
+/// <summary>
+/// 測試用 - 使用 IEnumerable&lt;T&gt; 屬性的物件
+/// </summary>
+public class ObjectWithIEnumerableProperty
+{
+    public IEnumerable<string>? Items { get; set; }
+}
+
+/// <summary>
+/// 測試用 - 使用 ICollection&lt;T&gt; 屬性的物件
+/// </summary>
+public class ObjectWithICollectionProperty
+{
+    public ICollection<string>? Items { get; set; }
+}
+
+/// <summary>
+/// 測試用 - 使用 IList&lt;StrapiMediaField&gt; 屬性的物件
+/// </summary>
+public class ObjectWithIListMedia
+{
+    public IList<StrapiMediaField>? Images { get; set; }
+}
+
+/// <summary>
+/// 測試用 - 使用 ICollection&lt;Category&gt; 屬性的物件
+/// </summary>
+public class ObjectWithICollectionRelation
+{
+    public ICollection<Category>? Categories { get; set; }
+}
+
+/// <summary>
+/// 測試用 - 使用 IEnumerable&lt;IStrapiComponent&gt; 屬性的物件
+/// </summary>
+public class ObjectWithIEnumerableComponent
+{
+    public IEnumerable<IStrapiComponent>? Blocks { get; set; }
+}
+
+/// <summary>
+/// 測試用 - 使用 IEnumerable&lt;StrapiMediaField&gt; 屬性的物件
+/// </summary>
+public class ObjectWithIEnumerableMedia
+{
+    public IEnumerable<StrapiMediaField>? Images { get; set; }
+}
+
+/// <summary>
+/// 測試用 - 使用 ICollection&lt;StrapiMediaField&gt; 屬性的物件
+/// </summary>
+public class ObjectWithICollectionMedia
+{
+    public ICollection<StrapiMediaField>? Images { get; set; }
+}
+
+/// <summary>
+/// 測試用 - 使用 IList&lt;Category&gt; 屬性的物件
+/// </summary>
+public class ObjectWithIListRelation
+{
+    public IList<Category>? Categories { get; set; }
+}
+
+/// <summary>
+/// 測試用 - 使用 IEnumerable&lt;Category&gt; 屬性的物件
+/// </summary>
+public class ObjectWithIEnumerableRelation
+{
+    public IEnumerable<Category>? Categories { get; set; }
+}
+
+/// <summary>
+/// 測試用 - 包含 Dictionary 屬性的物件（非列表泛型類型）
+/// </summary>
+public class ObjectWithDictionaryProperty
+{
+    public Dictionary<string, string>? Metadata { get; set; }
+}
+
+/// <summary>
+/// 測試用 - 包含非泛型屬性的物件
+/// </summary>
+public class ObjectWithNonGenericProperty
+{
+    public int Value { get; set; }
+    public string Name { get; set; } = string.Empty;
 }
 
 /// <summary>

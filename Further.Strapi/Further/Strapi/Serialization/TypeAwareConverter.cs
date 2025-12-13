@@ -59,7 +59,10 @@ public class TypeAwareConverter : ITypeAwareConverter, ITransientDependency
     /// <returns>轉換後的字典表示</returns>
     public object? ConvertForWrite(object? obj)
     {
-        if (obj == null) return null;
+        if (obj == null)
+        {
+            return null;
+        }
 
         var type = obj.GetType();
 
@@ -105,7 +108,10 @@ public class TypeAwareConverter : ITypeAwareConverter, ITransientDependency
     /// </summary>
     private object? ProcessAsPropertyValue(object? value, Type propertyType)
     {
-        if (value == null) return null;
+        if (value == null)
+        {
+            return null;
+        }
 
         var type = value.GetType();
 
@@ -206,7 +212,10 @@ public class TypeAwareConverter : ITypeAwareConverter, ITransientDependency
 
         foreach (var property in properties)
         {
-            if (!property.CanRead) continue;
+            if (!property.CanRead)
+            {
+                continue;
+            }
 
             var value = property.GetValue(obj);
             var propertyType = property.PropertyType;
@@ -240,14 +249,19 @@ public class TypeAwareConverter : ITypeAwareConverter, ITransientDependency
     /// </summary>
     private static bool IsListOfType<T>(Type type)
     {
-        if (!type.IsGenericType) return false;
+        if (!type.IsGenericType)
+        {
+            return false;
+        }
 
         var genericDef = type.GetGenericTypeDefinition();
         if (genericDef != typeof(List<>) &&
             genericDef != typeof(IList<>) &&
             genericDef != typeof(IEnumerable<>) &&
             genericDef != typeof(ICollection<>))
+        {
             return false;
+        }
 
         var elementType = type.GetGenericArguments()[0];
         return elementType == typeof(T);
@@ -260,14 +274,19 @@ public class TypeAwareConverter : ITypeAwareConverter, ITransientDependency
     {
         elementType = null;
 
-        if (!type.IsGenericType) return false;
+        if (!type.IsGenericType)
+        {
+            return false;
+        }
 
         var genericDef = type.GetGenericTypeDefinition();
         if (genericDef != typeof(List<>) &&
             genericDef != typeof(IList<>) &&
             genericDef != typeof(IEnumerable<>) &&
             genericDef != typeof(ICollection<>))
+        {
             return false;
+        }
 
         elementType = type.GetGenericArguments()[0];
         return HasStrapiCollectionName(elementType) || HasStrapiSingleTypeName(elementType);
@@ -349,7 +368,10 @@ public class TypeAwareConverter : ITypeAwareConverter, ITransientDependency
         var documentIds = new List<string>();
         foreach (var item in relationList)
         {
-            if (item == null) continue;
+            if (item == null)
+            {
+                continue;
+            }
 
             var type = item.GetType();
             var documentIdProp = type.GetProperty("DocumentId");

@@ -62,9 +62,10 @@ public class StrapiProviderTests : StrapiIntegrationTestBase
     {
         // Arrange
         var jsonSerializer = GetRequiredService<Volo.Abp.Json.IJsonSerializer>();
+        var typeAwareConverter = GetRequiredService<Further.Strapi.Serialization.ITypeAwareConverter>();
 
         // Act & Assert
-        Should.NotThrow(() => new StrapiWriteSerializer(jsonSerializer));
+        Should.NotThrow(() => new StrapiWriteSerializer(jsonSerializer, typeAwareConverter));
     }
 
     [Fact]
@@ -116,9 +117,10 @@ public class StrapiProviderTests : StrapiIntegrationTestBase
     {
         // Arrange
         var jsonSerializer = GetRequiredService<Volo.Abp.Json.IJsonSerializer>();
+        var typeAwareConverter = GetRequiredService<Further.Strapi.Serialization.ITypeAwareConverter>();
 
         // Act
-        var serializer = new StrapiWriteSerializer(jsonSerializer);
+        var serializer = new StrapiWriteSerializer(jsonSerializer, typeAwareConverter);
 
         // Assert
         serializer.ShouldBeAssignableTo<Volo.Abp.DependencyInjection.ITransientDependency>();

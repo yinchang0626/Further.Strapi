@@ -59,11 +59,8 @@ public static class ConverterHelper
         // 處理其他類型，使用標準反序列化
         using var document = JsonDocument.ParseValue(ref reader);
         var json = document.RootElement.GetRawText();
-        
-        var tempOptions = new JsonSerializerOptions(options);
-        tempOptions.Converters.RemoveAll(c => c is ConverToDocumentId or ConverToId);
-        
-        return JsonSerializer.Deserialize<T>(json, tempOptions);
+
+        return JsonSerializer.Deserialize<T>(json, options);
     }
 
     public static object? ReadValue(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
@@ -88,11 +85,8 @@ public static class ConverterHelper
         // 處理其他類型，使用標準反序列化
         using var document = JsonDocument.ParseValue(ref reader);
         var json = document.RootElement.GetRawText();
-        
-        var tempOptions = new JsonSerializerOptions(options);
-        tempOptions.Converters.RemoveAll(c => c is ConverToDocumentId or ConverToId);
-        
-        return JsonSerializer.Deserialize(json, typeToConvert, tempOptions);
+
+        return JsonSerializer.Deserialize(json, typeToConvert, options);
     }
 
     public static void WriteValue(Utf8JsonWriter writer, object value, JsonSerializerOptions options, StrapiWriterMode mode)
@@ -225,10 +219,7 @@ public static class ConverterHelper
 
     private static void WriteFullObject(Utf8JsonWriter writer, object value, Type valueType, JsonSerializerOptions options)
     {
-        var tempOptions = new JsonSerializerOptions(options);
-        tempOptions.Converters.RemoveAll(c => c is ConverToDocumentId or ConverToId);
-        
-        JsonSerializer.Serialize(writer, value, valueType, tempOptions);
+        JsonSerializer.Serialize(writer, value, valueType, options);
     }
 
     private static void WriteMediaField(Utf8JsonWriter writer, StrapiMediaField value, StrapiWriterMode mode)
@@ -305,11 +296,8 @@ public static class ConverterHelper
         {
             using var document = JsonDocument.ParseValue(ref reader);
             var json = document.RootElement.GetRawText();
-            
-            var tempOptions = new JsonSerializerOptions(options);
-            tempOptions.Converters.RemoveAll(c => c is ConverToDocumentId or ConverToId);
-            
-            return JsonSerializer.Deserialize<StrapiMediaField>(json, tempOptions);
+
+            return JsonSerializer.Deserialize<StrapiMediaField>(json, options);
         }
 
         throw new JsonException($"Unexpected token type: {reader.TokenType}");

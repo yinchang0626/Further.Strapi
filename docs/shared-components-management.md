@@ -198,26 +198,25 @@ node sync-shared-components.js validate
 ```csharp
 // Further.Strapi.Shared/Components/SharedComponents.cs
 [StrapiComponentName("shared.string-item")]
-[JsonConverter(typeof(ConverToId))]
 public class StringItem
 {
     public string Value { get; set; } = string.Empty;
 }
 
 [StrapiComponentName("shared.media")]
-[JsonConverter(typeof(ConverToId))]
 public class Media
 {
-    public object File { get; set; } = new();
+    public StrapiMediaField? File { get; set; }
 }
 
 [StrapiComponentName("shared.slider")]
-[JsonConverter(typeof(ConverToId))]
 public class Slider
 {
-    public object[] Files { get; set; } = Array.Empty<object>();
+    public List<StrapiMediaField>? Files { get; set; }
 }
 ```
+
+> 注意：`StrapiMediaField` 和 Relation 類型會由 `TypeAwareConverter` 自動識別並轉換，不需要手動標註 `[JsonConverter]` 屬性。
 
 ## 故障排除
 

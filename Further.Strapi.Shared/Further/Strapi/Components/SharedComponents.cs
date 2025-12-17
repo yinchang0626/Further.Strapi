@@ -1,6 +1,5 @@
 using Further.Strapi.Serialization;
 using System.Collections.Generic;
-using System.Text.Json.Serialization;
 
 namespace Further.Strapi.Components;
 
@@ -12,14 +11,12 @@ namespace Further.Strapi.Components;
 [StrapiComponentName("shared.media")]
 public class Media
 {
-    [JsonConverter(typeof(ConverToId))]
     public StrapiMediaField? File { get; set; }
 }
 
 [StrapiComponentName("shared.slider")]
 public class Slider
 {
-    [JsonConverter(typeof(ConverToId))]
     public List<StrapiMediaField>? Files { get; set; }
 }
 

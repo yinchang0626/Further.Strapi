@@ -112,8 +112,8 @@ public class ReadJsonStructureIntegrationTests : StrapiRealIntegrationTestBase
             _output.WriteLine($"  Cover.AlternativeText: {readArticle.Cover.AlternativeText}");
 
             // 步驟 5: 驗證 StrapiMediaField 物件本身包含完整結構
-            // 注意：Article.Cover 屬性有 [JsonConverter(typeof(ConverToId))] 標註
-            // 所以序列化 Article 時會把 Cover 轉為 Id（這是寫入 Strapi 需要的格式）
+            // 注意：TypeAwareConverter 會自動識別 StrapiMediaField 類型
+            // 序列化 Article 時會把 Cover 轉為 Id（這是寫入 Strapi 需要的格式）
             // 但讀取時，C# 物件本身保留了完整結構（步驟 4 已驗證）
             _output.WriteLine("\n=== 步驟 5: 單獨序列化 Cover 驗證完整結構 ===");
             var jsonOptions = new JsonSerializerOptions

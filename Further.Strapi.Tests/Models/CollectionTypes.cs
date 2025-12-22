@@ -1,7 +1,6 @@
 using Further.Strapi.Serialization;
 using System;
 using System.Collections.Generic;
-using System.Text.Json.Serialization;
 
 namespace Further.Strapi.Tests.Models;
 
@@ -10,7 +9,7 @@ namespace Further.Strapi.Tests.Models;
 /// Create your blog content
 /// </summary>
 [StrapiCollectionName("articles")]
-public class Article 
+public class Article
 {
     public int? Id { get; set; }
     public string? DocumentId { get; set; }
@@ -36,7 +35,6 @@ public class Article
     /// <summary>
     /// Cover image/video/file
     /// </summary>
-    [JsonConverter(typeof(ConverToId))]
     public StrapiMediaField? Cover { get; set; }
 
     /// <summary>
@@ -47,13 +45,11 @@ public class Article
     /// <summary>
     /// Related author (Many-to-One relationship)
     /// </summary>
-    [JsonConverter(typeof(ConverToDocumentId))]
     public Author? Author { get; set; }
 
     /// <summary>
     /// Related category (Many-to-One relationship)
     /// </summary>
-    [JsonConverter(typeof(ConverToDocumentId))]
     public Category? Category { get; set; }
 }
 
@@ -62,7 +58,7 @@ public class Article
 /// Create authors for your content
 /// </summary>
 [StrapiCollectionName("authors")]
-public class Author 
+public class Author
 {
     public int? Id { get; set; }
     public string? DocumentId { get; set; }
@@ -83,13 +79,11 @@ public class Author
     /// <summary>
     /// Author avatar image
     /// </summary>
-    [JsonConverter(typeof(ConverToId))]
     public StrapiMediaField? Avatar { get; set; }
 
     /// <summary>
     /// Articles written by this author (One-to-Many relationship)
     /// </summary>
-    [JsonConverter(typeof(ConverToDocumentId))]
     public List<Article>? Articles { get; set; }
 }
 
@@ -98,7 +92,7 @@ public class Author
 /// Organize your content into categories
 /// </summary>
 [StrapiCollectionName("categories")]
-public class Category 
+public class Category
 {
     public int? Id { get; set; }
     public string? DocumentId { get; set; }
@@ -124,6 +118,5 @@ public class Category
     /// <summary>
     /// Articles in this category (One-to-Many relationship)
     /// </summary>
-    [JsonConverter(typeof(ConverToDocumentId))]
     public List<Article>? Articles { get; set; }
 }

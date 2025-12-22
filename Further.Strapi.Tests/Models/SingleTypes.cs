@@ -2,7 +2,6 @@ using Further.Strapi.Serialization;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Text.Json.Serialization;
 
 namespace Further.Strapi.Tests.Models;
 
@@ -13,17 +12,16 @@ namespace Further.Strapi.Tests.Models;
 public class Global
 {
     public string DocumentId { get; set; } = string.Empty;
-    
+
     [Required]
     public string SiteName { get; set; } = string.Empty;
-    
+
     [Required]
     public string SiteDescription { get; set; } = string.Empty;
 
     /// <summary>
     /// 網站 Favicon - Media 檔案
     /// </summary>
-    [JsonConverter(typeof(ConverToId))]
     public StrapiMediaField? Favicon { get; set; }
     
     /// <summary>

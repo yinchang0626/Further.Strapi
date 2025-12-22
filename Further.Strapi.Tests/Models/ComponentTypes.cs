@@ -1,7 +1,6 @@
 using Further.Strapi.Serialization;
 using Further.Strapi.Tests.Models;
 using System.Collections.Generic;
-using System.Text.Json.Serialization;
 
 namespace Further.Strapi;
 
@@ -12,9 +11,9 @@ namespace Further.Strapi;
 public class SharedQuoteComponent : IStrapiComponent
 {
     public int? Id { get; set; }
-    
+
     public string Title { get; set; } = string.Empty;
-    
+
     public string Body { get; set; } = string.Empty;
 }
 
@@ -25,7 +24,7 @@ public class SharedQuoteComponent : IStrapiComponent
 public class SharedRichTextComponent : IStrapiComponent
 {
     public int? Id { get; set; }
-    
+
     public string Body { get; set; } = string.Empty;
 }
 
@@ -40,9 +39,9 @@ public class SharedMediaComponent : IStrapiComponent
     /// <summary>
     /// Media file (images, files, or videos)
     /// </summary>
-    [JsonConverter(typeof(ConverToId))]
     public StrapiMediaField? File { get; set; }
 }
+
 /// <summary>
 /// Shared SEO Component - 對應 shared.seo
 /// </summary>
@@ -64,7 +63,6 @@ public class SharedSeoComponent : IStrapiComponent
     /// <summary>
     /// Share image for social media
     /// </summary>
-    [JsonConverter(typeof(ConverToId))]
     public StrapiMediaField? ShareImage { get; set; }
 }
 
@@ -79,6 +77,5 @@ public class SharedSliderComponent : IStrapiComponent
     /// <summary>
     /// Multiple image files
     /// </summary>
-    [JsonConverter(typeof(ConverToId))]
     public List<StrapiMediaField> Files { get; set; }
 }

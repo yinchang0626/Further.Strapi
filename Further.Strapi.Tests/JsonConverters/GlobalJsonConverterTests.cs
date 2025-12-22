@@ -7,7 +7,9 @@ namespace Further.Strapi.Tests.JsonConverters;
 
 /// <summary>
 /// 測試全域 JSON 轉換器設定
-/// 驗證 StrapiMediaFile 的智能轉換器在 ABP 框架中正常運作
+/// 驗證 StrapiMediaFile 在 ABP 框架中的序列化行為
+/// 注意：TypeAwareConverter 只在 StrapiWriteSerializer 中使用，
+/// 普通的 IJsonSerializer 會保留完整物件結構
 /// </summary>
 public class GlobalJsonConverterTests : StrapiIntegrationTestBase
 {
@@ -19,7 +21,7 @@ public class GlobalJsonConverterTests : StrapiIntegrationTestBase
     }
 
     [Fact]
-    public void MediaComponent_SerializeWithAbpJsonSerializer_ShouldUseSmartConverter()
+    public void MediaComponent_SerializeWithAbpJsonSerializer_ShouldPreserveFullObject()
     {
         // Arrange
         var component = new SharedMediaComponent
@@ -38,13 +40,15 @@ public class GlobalJsonConverterTests : StrapiIntegrationTestBase
         // Act
         var json = _jsonSerializer.Serialize(component);
 
-        // Assert
+        // Assert - ABP 的 IJsonSerializer 保留完整物件結構
         Assert.Contains("\"id\":1", json);
-        Assert.Contains("\"file\":123", json);
+        Assert.Contains("\"file\":", json);
+        Assert.Contains("\"documentId\":\"doc123\"", json);
+        Assert.Contains("\"name\":\"test.jpg\"", json);
     }
 
     [Fact]
-    public void SliderComponent_SerializeMultipleFiles_ShouldUseSmartArrayConverter()
+    public void SliderComponent_SerializeMultipleFiles_ShouldPreserveFullObjects()
     {
         // Arrange
         var component = new SharedSliderComponent
@@ -60,9 +64,11 @@ public class GlobalJsonConverterTests : StrapiIntegrationTestBase
         // Act
         var json = _jsonSerializer.Serialize(component);
 
-        // Assert
+        // Assert - ABP 的 IJsonSerializer 保留完整物件結構
         Assert.Contains("\"id\":1", json);
-        Assert.Contains("\"files\":[123,456]", json);
+        Assert.Contains("\"files\":", json);
+        Assert.Contains("\"documentId\":\"doc123\"", json);
+        Assert.Contains("\"documentId\":\"doc456\"", json);
     }
 
     [Fact]

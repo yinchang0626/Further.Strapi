@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Volo.Abp.Json;
 
@@ -61,7 +62,8 @@ public class CollectionTypeProvider<T> : ICollectionTypeProvider<T>
         Action<FilterBuilder>? filter = null,
         Action<PopulateBuilder>? populate = null,
         Action<SortBuilder>? sort = null,
-        Action<PaginationBuilder>? pagination = null)
+        Action<PaginationBuilder>? pagination = null,
+        CancellationToken cancellationToken = default)
     {
         var client = CreateHttpClient();
         var path = StrapiProtocol.Paths.CollectionType<T>();
@@ -121,7 +123,7 @@ public class CollectionTypeProvider<T> : ICollectionTypeProvider<T>
         var query = queryParams.Count > 0 ? $"?{string.Join("&", queryParams)}" : "";
         var request = new HttpRequestMessage(HttpMethod.Get, $"{path}{query}");
 
-        var response = await client.SendAsync(request);
+        var response = await client.SendAsync(request, cancellationToken);
 
         var responseData = await StrapiProtocol.Response.DeserializeResponse<StrapiCollectionResponse<T>>(response, _jsonSerializer);
         

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Further.Strapi;
@@ -22,5 +23,6 @@ public interface ICollectionTypeProvider<T>
         Action<FilterBuilder>? filter = null,
         Action<PopulateBuilder>? populate = null,
         Action<SortBuilder>? sort = null,
-        Action<PaginationBuilder>? pagination = null);
+        Action<PaginationBuilder>? pagination = null,
+        CancellationToken cancellationToken = default);
 }
